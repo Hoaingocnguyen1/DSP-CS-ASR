@@ -1,0 +1,99 @@
+# Seed needs to be set at top of yaml, before objects with parameters are instantiated
+seed: 2025
+__set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
+
+# Folder paths
+data_folder: ../../../data_pipelines/codeswitch-builder  # Path to ViMedCSS output
+output_folder: !ref results/Baseline_Wav2Vec2_VI/<seed>
+save_folder: !ref <output_folder>/save
+train_log: !ref <output_folder>/train_log.txt
+
+# JSON Annotations
+train_annotation: !ref <data_folder>/outputs/train.json
+valid_annotation: !ref <data_folder>/outputs/valid.json
+test_annotation: !ref <data_folder>/outputs/test.json
+
+# Training parameters
+number_of_epochs: 15
+batch_size: 4
+lr: 0.0001
+label_smoothing: 0.1
+num_workers: 2
+
+# Dataloader options
+train_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+    shuffle: True
+
+valid_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+
+# Vocabulary
+output_neurons: 4000  # Tokenizer vocab size
+blank_index: 0
+
+# Epoch counter
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+# CTC Greedy Searcher for Evaluation
+valid_search: !new:speechbrain.decoders.ctc.CTCGreedySearcher
+    blank_index: !ref <blank_index>
+
+# Models
+# Baseline Wav2Vec2 Vietnamese (95M Params)
+wav2vec2: !new:speechbrain.lobes.models.huggingface_wav2vec.HuggingFaceWav2Vec2
+    source: "nguyenvulebinh/wav2vec2-base-vietnamese-250h"
+    save_path: "pretrained_models"
+    output_norm: True
+    freeze_feature_extractor: True
+    # In the baseline, we fine-tune the whole transformer stack (or part of it)
+    freeze: False
+    
+# CTC Linear Projection
+ctc_lin: !new:speechbrain.nnet.linear.Linear
+    input_size: 768 # 768 for base models, 1024 for large models
+    n_neurons: !ref <output_neurons>
+
+log_softmax: !new:speechbrain.nnet.activations.Softmax
+    apply_log: True
+
+# Tokenizer (Assuming it was pre-trained on transcript words)
+tokenizer: !new:speechbrain.tokenizers.SentencePiece.SentencePiece
+    model_dir: ../../DSP_CodeSwitch/Tokenizer/save
+    vocab_size: !ref <output_neurons>
+    annotation_train: !ref <train_annotation>
+    annotation_read: words
+    model_type: bpe
+    character_coverage: 1.0
+
+# Optimizer
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+
+# Training Logger
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+lr_annealing: !new:speechbrain.nnet.schedulers.WarmAndExpDecayLRSchedule
+    lr: !ref <lr>
+    n_warmup_steps: 500
+    total_steps: 7500
+    decay_factor: 0.01
+
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+
+# Gathering Submodels
+modules:
+    wav2vec2: !ref <wav2vec2>
+    ctc_lin: !ref <ctc_lin>
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        wav2vec2: !ref <wav2vec2>
+        ctc_lin: !ref <ctc_lin>
+        lr_annealing: !ref <lr_annealing>
+        epoch_counter: !ref <epoch_counter>

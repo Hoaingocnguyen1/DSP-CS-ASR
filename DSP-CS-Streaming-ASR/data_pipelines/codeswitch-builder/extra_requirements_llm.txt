@@ -1,0 +1,4 @@
+# Extra requirements for LLM-based code-switch generation (Step 3)
+# Install with: pip install -r extra_requirements_llm.txt
+bitsandbytes>=0.41.0
+peft>=0.5.0

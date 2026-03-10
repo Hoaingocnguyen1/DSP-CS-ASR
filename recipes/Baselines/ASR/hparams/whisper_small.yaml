@@ -1,0 +1,81 @@
+# Seed needs to be set at top of yaml, before objects with parameters are instantiated
+seed: 2025
+__set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
+
+# Folder paths
+data_folder: ../../../data_pipelines/codeswitch-builder  # Path to ViMedCSS output
+output_folder: !ref results/Baseline_Whisper_Small/<seed>
+save_folder: !ref <output_folder>/save
+train_log: !ref <output_folder>/train_log.txt
+
+# JSON Annotations
+train_annotation: !ref <data_folder>/outputs/train.json
+valid_annotation: !ref <data_folder>/outputs/valid.json
+test_annotation: !ref <data_folder>/outputs/test.json
+
+# Training parameters
+number_of_epochs: 15
+batch_size: 4
+lr: 0.00001 # Whisper usually requires a smaller LR than w2v2
+label_smoothing: 0.1
+num_workers: 2
+
+# Dataloader options
+train_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+    shuffle: True
+
+valid_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+
+# Vocabulary mapping for Whisper tokenizer (BPE)
+bos_index: 50257 # sot token usually
+eos_index: 50256 # eot token usually
+
+# Epoch counter
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+# Models
+# Baseline Whisper Small (244M Params)
+whisper: !new:speechbrain.lobes.models.huggingface_whisper.HuggingFaceWhisper
+    source: "openai/whisper-small"
+    save_path: "pretrained_models"
+    # For fine-tuning, freeze the encoder to save VRAM if needed, but we unfreeze here for full FT
+    freeze: False
+    freeze_encoder: False
+
+# Tokenizer (Whisper's native HuggingFace tokenizer)
+tokenizer: !name:transformers.WhisperTokenizer.from_pretrained
+    pretrained_model_name_or_path: "openai/whisper-small"
+    language: "vietnamese"
+    task: "transcribe"
+
+log_softmax: !new:speechbrain.nnet.activations.Softmax
+    apply_log: True
+
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+lr_annealing: !new:speechbrain.nnet.schedulers.WarmAndExpDecayLRSchedule
+    lr: !ref <lr>
+    n_warmup_steps: 500
+    total_steps: 7500
+    decay_factor: 0.01
+
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+
+modules:
+    whisper: !ref <whisper>
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        whisper: !ref <whisper>
+        lr_annealing: !ref <lr_annealing>
+        epoch_counter: !ref <epoch_counter>

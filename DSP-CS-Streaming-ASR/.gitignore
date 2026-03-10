@@ -1,0 +1,34 @@
+# Python environments
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyTorch and Model Weights
+*.pt
+*.pth
+*.ckpt
+*.onnx
+pretrained_models/
+results/
+save/
+
+# Data and Audio
+*.wav
+*.flac
+*.mp3
+data/
+outputs/*.json
+outputs/*.txt
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/

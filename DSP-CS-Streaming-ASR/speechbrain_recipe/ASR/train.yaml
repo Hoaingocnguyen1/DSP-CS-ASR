@@ -1,0 +1,118 @@
+# Seed needs to be set at top of yaml, before objects with parameters are instantiated
+seed: 2025
+__set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
+
+# Folder paths
+data_folder: ../../../codeswitch-builder  # Where cs_text.txt / audio is stored relative to recipe
+output_folder: !ref results/DSP_W2VBERT_CodeSwitch/<seed>
+save_folder: !ref <output_folder>/save
+train_log: !ref <output_folder>/train_log.txt
+
+# JSON Annotations
+train_annotation: !ref <data_folder>/outputs/train.json
+valid_annotation: !ref <data_folder>/outputs/valid.json
+test_annotation: !ref <data_folder>/outputs/test.json
+
+# Curriculum Learning Flags
+warmup_only: False      # If True, Stage 1: freeze decoder, only train GRU for LID.
+lid_loss_weight: 0.2    # Weight for LID loss during Joint Training (Stage 2)
+
+# Training parameters
+number_of_epochs: 15
+batch_size: 4
+lr: 0.0001
+label_smoothing: 0.1
+num_workers: 2
+
+# Dataloader options
+train_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+    shuffle: True
+
+valid_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+
+# Vocabulary and Decoders
+output_neurons: 4000  # Tokenizer vocab size
+blank_index: 0
+bos_index: 1
+eos_index: 2
+
+# Models
+# The backbone is w2v-bert-2.0, with a Causal Prompt Generator
+dsp_w2vbert: !new:dsp_model.DSP_W2VBERT
+    source: "facebook/w2v-bert-2.0"
+    save_path: "pretrained_models"
+    freeze: True
+    input_size: 1024
+    hidden_size: 256
+    num_languages: 3 # VI, EN, Silence
+
+# Embedding (from indexes to an embedding space).
+embedding: !new:speechbrain.nnet.embedding.Embedding
+    num_embeddings: !ref <output_neurons>
+    embedding_dim: 256
+
+# Decoder (Simple GRU or Custom RNN-T)
+decoder: !new:speechbrain.nnet.RNN.AttentionalRNNDecoder
+    enc_dim: 1024  # Input from the adapted features of w2v-bert
+    input_size: 256
+    rnn_type: gru
+    attn_type: location
+    hidden_size: 512
+    attn_dim: 512
+    num_layers: 1
+
+# Linear transformation on the top of the decoder.
+seq_lin: !new:speechbrain.nnet.linear.Linear
+    input_size: 512
+    n_neurons: !ref <output_neurons>
+
+# Final softmax (for log posteriors computation).
+log_softmax: !new:speechbrain.nnet.activations.Softmax
+    apply_log: True
+
+# Tokenizer (Assuming it was pre-trained on transcript words)
+tokenizer: !new:speechbrain.tokenizers.SentencePiece.SentencePiece
+    model_dir: ../Tokenizer/save
+    vocab_size: !ref <output_neurons>
+    annotation_train: !ref <train_annotation>
+    annotation_read: words
+    model_type: bpe
+    character_coverage: 1.0
+
+# CTC cost for aligning the Prompt Generator with the LID tags
+ctc_cost: !name:speechbrain.nnet.losses.ctc_loss
+    blank_index: !ref <blank_index>
+
+# Optimizer
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+
+# Training Logger
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+lr_annealing: !new:speechbrain.nnet.schedulers.NewBobScheduler
+    initial_value: !ref <lr>
+    improvement_threshold: 0.0025
+    annealing_factor: 0.8
+    patient: 0
+
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+
+# Gathering Submodels
+modules:
+    dsp_w2vbert: !ref <dsp_w2vbert>
+    embedding: !ref <embedding>
+    decoder: !ref <decoder>
+    seq_lin: !ref <seq_lin>
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        dsp_w2vbert: !ref <dsp_w2vbert>
+        decoder: !ref <decoder>
+        embedding: !ref <embedding>

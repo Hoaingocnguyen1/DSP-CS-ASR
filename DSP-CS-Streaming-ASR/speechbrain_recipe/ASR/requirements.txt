@@ -1,0 +1,14 @@
+# ============================================================
+# DSP-CS-Streaming-ASR — Core Dependencies
+# ============================================================
+# SpeechBrain is used as a PIP PACKAGE — no need to clone the repo.
+# All modules (AdaptedModel, LoRA, LayerNorm, etc.) come from this install.
+speechbrain==1.0.3
+hyperpyyaml==1.2.3
+sentencepiece==0.2.1
+transformers==5.2.0
+onnx==1.14.1
+onnxruntime==1.23.2
+tensorboard==2.15.2
+protobuf==3.20.3
+requests-oauthlib==2.0.0

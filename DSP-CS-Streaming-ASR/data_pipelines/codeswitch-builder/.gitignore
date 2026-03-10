@@ -1,0 +1,49 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Model caches (often very large)
+.cache/
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Audio outputs (can be regenerated)
+outputs/audio/*.wav
+
+# Processed data (can be regenerated)
+data/processed/*.txt
+data/processed/*.json
+
+# Logs
+*.log
+tensorboard_logs/
+profiler_logs/

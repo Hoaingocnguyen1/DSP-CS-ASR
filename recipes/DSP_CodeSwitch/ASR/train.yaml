@@ -1,0 +1,182 @@
+# Seed needs to be set at top of yaml, before objects with parameters are instantiated
+seed: 2025
+__set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
+
+# Folder paths
+data_folder: ../../../codeswitch-builder  # Where cs_text.txt / audio is stored relative to recipe
+output_folder: !ref results/DSP_W2VBERT_CodeSwitch/<seed>
+save_folder: !ref <output_folder>/save
+train_log: !ref <output_folder>/train_log.txt
+
+# JSON Annotations
+train_annotation: !ref <data_folder>/outputs/train.json
+valid_annotation: !ref <data_folder>/outputs/valid.json
+test_annotation: !ref <data_folder>/outputs/test.json
+
+# Curriculum Learning Flags
+warmup_only: False      # If True, Stage 1: freeze decoder, only train GRU for LID.
+lid_loss_weight: 0.2    # Weight for LID loss during Joint Training (Stage 2)
+
+# Training parameters
+number_of_epochs: 15
+batch_size: 4
+lr: 0.0001
+label_smoothing: 0.1
+num_workers: 2
+
+# Data Augmentation (EnvCorrupt)
+# WARNING #8 FIX: Set enable_env_corrupt to True only when the RIR/noise dataset
+# is available locally. When False, augmentation is skipped silently.
+# Download OpenRIR: speechbrain.lobes.augment.EnvCorrupt will auto-download to data_folder_rirs.
+enable_env_corrupt: False
+data_folder_rirs: !ref <data_folder>/rirs
+wav_augment: !new:speechbrain.lobes.augment.EnvCorrupt
+    openrir_folder: !ref <data_folder_rirs>
+    openrir_max_noise_len: 3.0  # seconds
+    reverb_prob: 0.5
+    noise_prob: 0.8
+    noise_snr_low: 0
+    noise_snr_high: 15
+    rir_scale_factor: 1.0
+
+# Dataloader options
+train_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+    shuffle: True
+
+valid_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+
+# Vocabulary and Decoders
+output_neurons: 4000  # Tokenizer vocab size
+blank_index: 0
+bos_index: 1
+eos_index: 2
+
+# Epoch counter — required by SpeechBrain Brain.fit()
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+# Beam Search decoders (used in valid/test compute_forward)
+valid_search: !new:speechbrain.decoders.S2SRNNBeamSearcher
+    embedding: !ref <embedding>
+    decoder: !ref <decoder>
+    linear: !ref <seq_lin>
+    bos_index: !ref <bos_index>
+    eos_index: !ref <eos_index>
+    min_decode_ratio: 0.0
+    max_decode_ratio: 1.0
+    beam_size: 16
+
+test_search: !new:speechbrain.decoders.S2SRNNBeamSearcher
+    embedding: !ref <embedding>
+    decoder: !ref <decoder>
+    linear: !ref <seq_lin>
+    bos_index: !ref <bos_index>
+    eos_index: !ref <eos_index>
+    min_decode_ratio: 0.0
+    max_decode_ratio: 1.0
+    beam_size: 64
+
+# Models
+# The backbone is w2v-bert-2.0, adapted with SpeechBrain LoRA (Hard Fix #5).
+# AdaptedModel wraps the backbone, freezes all pretrained params, and injects
+# trainable LoRA(rank=16) adapters into every Linear layer.
+# freeze=False is intentional: LoRA's AdaptedModel handles freezing internally.
+dsp_w2vbert: !new:dsp_model.DSP_W2VBERT
+    source: "facebook/w2v-bert-2.0"
+    save_path: "pretrained_models"
+    input_size: 1024
+    hidden_size: 256
+    num_languages: 3       # VI=1, EN=2, SIL=0
+    lora_rank: 16          # LoRA rank r: controls adapter capacity
+    lora_alpha: 1.0        # LoRA scaling = alpha/rank
+    dropout: 0.1           # Dropout in CausalPromptGenerator GRU
+
+# Embedding (from indexes to an embedding space).
+embedding: !new:speechbrain.nnet.embedding.Embedding
+    num_embeddings: !ref <output_neurons>
+    embedding_dim: 256
+
+# Decoder (Simple GRU or Custom RNN-T)
+decoder: !new:speechbrain.nnet.RNN.AttentionalRNNDecoder
+    enc_dim: 1024  # Input from the adapted features of w2v-bert
+    input_size: 256
+    rnn_type: gru
+    attn_type: location
+    hidden_size: 512
+    attn_dim: 512
+    num_layers: 1
+
+# Linear transformation on the top of the decoder (seq2seq path: 512 → vocab).
+seq_lin: !new:speechbrain.nnet.linear.Linear
+    input_size: 512
+    n_neurons: !ref <output_neurons>
+
+# Medium Fix #4: CTC-style linear for direct acoustic frame projection (1024 → vocab).
+# This is used by export_onnx.py (EndToEndASRWrapper) which feeds adapted_features [B,T,1024]
+# directly, NOT the seq2seq decoder output [B,T,512]. Using seq_lin here would crash (dim mismatch).
+ctc_lin: !new:speechbrain.nnet.linear.Linear
+    input_size: 1024
+    n_neurons: !ref <output_neurons>
+
+# Final softmax (for log posteriors computation).
+log_softmax: !new:speechbrain.nnet.activations.Softmax
+    apply_log: True
+
+# Tokenizer (Assuming it was pre-trained on transcript words)
+tokenizer: !new:speechbrain.tokenizers.SentencePiece.SentencePiece
+    model_dir: ../Tokenizer/save
+    vocab_size: !ref <output_neurons>
+    annotation_train: !ref <train_annotation>
+    annotation_read: words
+    model_type: bpe
+    character_coverage: 1.0
+
+# NOTE: LID alignment now uses F.interpolate + nll_loss (see train.py compute_objectives).
+# ctc_cost removed to avoid dead config confusion.
+
+# Optimizer
+opt_class: !name:torch.optim.Adam
+    lr: !ref <lr>
+
+# Training Logger
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+# Medium Fix #4 (LR Scheduler): Switch to WarmAndExpDecayLRSchedule for
+# proper curriculum warmup support. Stage 1 (warmup_only) trains GRU first,
+# then Stage 2 joint-trains everything. A warmup scheduler fits this perfectly.
+# - n_warmup_steps: steps to ramp up LR from 0 → lr_peak
+# - total_steps: estimated total training steps (epochs * batches ≈ 15 * 500 = 7500)
+lr_annealing: !new:speechbrain.nnet.schedulers.WarmAndExpDecayLRSchedule
+    lr: !ref <lr>
+    n_warmup_steps: 500
+    total_steps: 7500
+    decay_factor: 0.01
+
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+
+# Gathering Submodels
+modules:
+    dsp_w2vbert: !ref <dsp_w2vbert>
+    embedding: !ref <embedding>
+    decoder: !ref <decoder>
+    seq_lin: !ref <seq_lin>
+    ctc_lin: !ref <ctc_lin>      # CTC linear for ONNX export (trained in Stage 2)
+    # NOTE: wav_augment is NOT in modules because EnvCorrupt is applied outside
+    # the Brain's module registry (called directly in compute_forward via hparams).
+    # It has no trainable weights and doesn't need to be in sb.Brain.modules.
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        dsp_w2vbert: !ref <dsp_w2vbert>
+        decoder: !ref <decoder>
+        embedding: !ref <embedding>
+        seq_lin: !ref <seq_lin>          # Save/restore linear decoder weights
+        ctc_lin: !ref <ctc_lin>          # Medium Fix #4: Save/restore CTC linear weights
+        lr_annealing: !ref <lr_annealing> # Save scheduler state for resume
+        epoch_counter: !ref <epoch_counter> # Save epoch for resume
