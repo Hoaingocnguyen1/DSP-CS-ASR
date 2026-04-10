@@ -4,7 +4,7 @@ __set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
 
 # Folder paths
 data_folder: ../../../data/vimedcss  # Path to ViMedCSS output
-output_folder: !ref results/Baseline_WavLM/<seed>
+output_folder: !ref results/Baseline_Wav2Vec2_EN/<seed>
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt
 
@@ -13,11 +13,11 @@ train_annotation: !ref <data_folder>/train.json
 valid_annotation: !ref <data_folder>/valid.json
 test_annotation: !ref <data_folder>/test.json
 
-# Training parameters
+# Training parameters (same as wav2vec2_vi for fair comparison)
 number_of_epochs: 30
 batch_size: 2
-lr_wav2vec2: 0.00001    # Lower LR for pretrained backbone
-lr_ctc: 0.001           # Higher LR for randomly-initialized CTC head
+lr_wav2vec2: 0.00001    # Same as wav2vec2_vi
+lr_ctc: 0.001           # Same as wav2vec2_vi
 label_smoothing: 0.1
 num_workers: 2
 
@@ -43,12 +43,11 @@ epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
     limit: !ref <number_of_epochs>
 
 # CTC Greedy decoding is implemented directly in train_ssl_ctc.py
-# (no external searcher class needed)
 
 # Models
-# WavLM Base+ (94M Params) - English SSL pretrained with denoising
-wav2vec2: !new:speechbrain.integrations.huggingface.wavlm.WavLM
-    source: "microsoft/wavlm-base-plus"
+# Wav2Vec2 Base English (94M Params) - SSL pretrained on LibriSpeech 960h
+wav2vec2: !new:speechbrain.integrations.huggingface.wav2vec2.Wav2Vec2
+    source: "facebook/wav2vec2-base"
     save_path: "pretrained_models"
     output_norm: True
     freeze_feature_extractor: True
@@ -73,28 +72,27 @@ tokenizer: !new:speechbrain.tokenizers.SentencePiece.SentencePiece
     annotation_format: json
 
 # Optimizer: handled by init_optimizers() in train_ssl_ctc.py
-# (separate param groups for backbone and CTC head)
 
 # Training Logger
 train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
     save_file: !ref <train_log>
 
-# LR Scheduler: warmup + exponential decay (per-step)
+# LR Scheduler (same as wav2vec2_vi)
 # 5911 batches/epoch × 30 epochs = 177330 total steps
 lr_annealing: !new:speechbrain.nnet.schedulers.WarmAndExpDecayLRSchedule
-    lr: !ref <lr>
+    lr: 1.0
     n_warmup_steps: 500
     total_steps: 177330
     decay_factor: 0.1
 
-# SpecAugment: same as wav2vec2_vi
+# SpecAugment (same as wav2vec2_vi)
 time_drop: !new:speechbrain.augment.freq_domain.SpectrogramDrop
     drop_length_low: 3
     drop_length_high: 10
     drop_count_low: 1
     drop_count_high: 3
     replace: "zeros"
-    dim: 1  # time masking
+    dim: 1
 
 feat_drop: !new:speechbrain.augment.freq_domain.SpectrogramDrop
     drop_length_low: 5
@@ -102,7 +100,7 @@ feat_drop: !new:speechbrain.augment.freq_domain.SpectrogramDrop
     drop_count_low: 1
     drop_count_high: 2
     replace: "zeros"
-    dim: 2  # feature masking
+    dim: 2
 
 spec_augment: !new:speechbrain.augment.augmenter.Augmenter
     augmentations: [!ref <time_drop>, !ref <feat_drop>]
@@ -110,7 +108,6 @@ spec_augment: !new:speechbrain.augment.augmenter.Augmenter
 
 error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
 
-# Gathering Submodels
 modules:
     wav2vec2: !ref <wav2vec2>
     ctc_lin: !ref <ctc_lin>

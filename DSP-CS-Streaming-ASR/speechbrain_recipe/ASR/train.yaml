@@ -3,7 +3,7 @@ seed: 2025
 __set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
 
 # Folder paths
-data_folder: ../../../codeswitch-builder  # Where cs_text.txt / audio is stored relative to recipe
+data_folder: ../../../data_pipeline/codeswitch-builder  # Where cs_text.txt / audio is stored relative to recipe
 output_folder: !ref results/DSP_W2VBERT_CodeSwitch/<seed>
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt

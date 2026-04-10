@@ -3,8 +3,8 @@ seed: 2025
 __set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
 
 # Folder paths
-data_folder: ../../../data/vimedcss  # Path to ViMedCSS output
-output_folder: !ref results/Baseline_WavLM/<seed>
+data_folder: ../../../data/vimedcss
+output_folder: !ref results/DSP_MOE_XLSR/<seed>
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt
 
@@ -13,15 +13,20 @@ train_annotation: !ref <data_folder>/train.json
 valid_annotation: !ref <data_folder>/valid.json
 test_annotation: !ref <data_folder>/test.json
 
+# Curriculum Learning Flags
+warmup_only: False       # Skip Stage 1, go straight to Joint CTC + LID
+lid_loss_weight: 0.2    # Weight for LID loss during Joint Training (Stage 2)
+freeze_dsp_epochs: 3    # Freeze LoRA+GRU for first 3 epochs (CTC head learns stable features)
+
 # Training parameters
 number_of_epochs: 30
-batch_size: 2
-lr_wav2vec2: 0.00001    # Lower LR for pretrained backbone
-lr_ctc: 0.001           # Higher LR for randomly-initialized CTC head
+batch_size: 1
+lr_backbone: 0.0003          # Higher LR for LoRA to break through loss plateau
+lr_ctc: 0.005               # CTC head LR (higher for faster alignment learning)
 label_smoothing: 0.1
 num_workers: 2
 
-# SpecAugment (applied on features during training)
+# SpecAugment
 enable_spec_augment: True
 
 # Dataloader options
@@ -42,21 +47,21 @@ blank_index: 0
 epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
     limit: !ref <number_of_epochs>
 
-# CTC Greedy decoding is implemented directly in train_ssl_ctc.py
-# (no external searcher class needed)
-
 # Models
-# WavLM Base+ (94M Params) - English SSL pretrained with denoising
-wav2vec2: !new:speechbrain.integrations.huggingface.wavlm.WavLM
-    source: "microsoft/wavlm-base-plus"
+# DSP-CS on XLS-R 53 Large (315M + LoRA adapters)
+dsp_model: !new:dsp_moe_xlsr.MoE_DSP_XLSR
+    source: "facebook/wav2vec2-large-xlsr-53"
     save_path: "pretrained_models"
-    output_norm: True
-    freeze_feature_extractor: True
-    freeze: False
-    
+    input_size: 1024
+    hidden_size: 256
+    num_languages: 3       # VI=1, EN=2, SIL=0
+    lora_rank: 32          # 2 experts × rank32 ≈ 1 expert × rank64
+    lora_alpha: 2.0
+    dropout: 0.1
+
 # CTC Linear Projection
 ctc_lin: !new:speechbrain.nnet.linear.Linear
-    input_size: 768 # 768 for base models
+    input_size: 1024 # 1024 for large models
     n_neurons: !ref <output_neurons>
 
 log_softmax: !new:speechbrain.nnet.activations.Softmax
@@ -64,7 +69,7 @@ log_softmax: !new:speechbrain.nnet.activations.Softmax
 
 # Tokenizer
 tokenizer: !new:speechbrain.tokenizers.SentencePiece.SentencePiece
-    model_dir: ../../DSP_CodeSwitch/Tokenizer/save
+    model_dir: ../Tokenizer/save
     vocab_size: !ref <output_neurons>
     annotation_train: !ref <train_annotation>
     annotation_read: words
@@ -72,22 +77,21 @@ tokenizer: !new:speechbrain.tokenizers.SentencePiece.SentencePiece
     character_coverage: 1.0
     annotation_format: json
 
-# Optimizer: handled by init_optimizers() in train_ssl_ctc.py
-# (separate param groups for backbone and CTC head)
+# Optimization is handled by custom init_optimizers in train_ctc.py
 
 # Training Logger
 train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
     save_file: !ref <train_log>
 
-# LR Scheduler: warmup + exponential decay (per-step)
-# 5911 batches/epoch × 30 epochs = 177330 total steps
+# LR Scheduler: warmup + exponential decay (per-step, acting as SCALE FACTOR)
+# batch_size=1 → ~11822 batches/epoch × 30 epochs = 354660 total steps
 lr_annealing: !new:speechbrain.nnet.schedulers.WarmAndExpDecayLRSchedule
-    lr: !ref <lr>
-    n_warmup_steps: 500
-    total_steps: 177330
-    decay_factor: 0.1
+    lr: 1.0                 # SCALE FACTOR (1.0 = 100%)
+    n_warmup_steps: 500     # Same as baseline for fair comparison
+    total_steps: 354660
+    decay_factor: 0.1       # Same as baseline for fair comparison
 
-# SpecAugment: same as wav2vec2_vi
+# SpecAugment: same as baseline
 time_drop: !new:speechbrain.augment.freq_domain.SpectrogramDrop
     drop_length_low: 3
     drop_length_high: 10
@@ -112,14 +116,14 @@ error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
 
 # Gathering Submodels
 modules:
-    wav2vec2: !ref <wav2vec2>
+    dsp_model: !ref <dsp_model>
     ctc_lin: !ref <ctc_lin>
     spec_augment: !ref <spec_augment>
 
 checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
     checkpoints_dir: !ref <save_folder>
     recoverables:
-        wav2vec2: !ref <wav2vec2>
+        dsp_model: !ref <dsp_model>
         ctc_lin: !ref <ctc_lin>
         epoch_counter: !ref <epoch_counter>
         lr_annealing: !ref <lr_annealing>

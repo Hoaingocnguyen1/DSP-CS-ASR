@@ -28,7 +28,7 @@ Chọn phiên bản phù hợp với hệ thống GPU của bạn (Yêu cầu Py
 pip install torch==2.1.0 torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # GPU — CUDA 12.1
-pip install torch==2.1.0 torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu122
 ```
 
 ### 0.3 Cài đặt Repository & Dependencies
@@ -38,12 +38,12 @@ Thay vì dùng SpeechBrain từ pip, ta sẽ cài SpeechBrain trực tiếp từ
 pip install --editable .
 
 # Cài đặt các thư viện bổ trợ cho Code-Switching và Baseline
-pip install transformers>=4.38.0 datasets>=2.18.0 sentencepiece>=0.1.99 jiwer soundfile tqdm hyperpyyaml
+pip install "transformers>=4.38.0" "datasets>=2.18.0" "sentencepiece>=0.1.99" jiwer soundfile tqdm hyperpyyaml
 ```
 
 ---
 
-## 📦 PHASE 1 — Chuẩn bị Dataset & Tokenizer
+## PHASE 1 — Chuẩn bị Dataset & Tokenizer
 
 Cấu trúc script tiện ích xử lý dữ liệu hiện nằm gọn trong thư mục `DSP-CS-Streaming-ASR/data_pipelines/`.
 
@@ -51,23 +51,23 @@ Cấu trúc script tiện ích xử lý dữ liệu hiện nằm gọn trong th�
 Dữ liệu sẽ được tự động tải về và ép chuẩn sang định dạng JSON cần thiết của SpeechBrain.
 ```bash
 # Chạy script chuẩn bị
-python DSP-CS-Streaming-ASR/data_pipelines/codeswitch-builder/scripts/prepare_vimedcss.py \
-    --output_dir data/vimedcss
+python data_pipeline/speechbrain_prep/prepare_vimedcss.py --output_dir data/vimedcss
 ```
 
 ### 1.2 Huấn luyện SentencePiece Tokenizer
 Bắt buộc phải tạo bộ từ điển BPE phục vụ cho các mô hình trước khi huấn luyện model chính:
 ```bash
-python DSP-CS-Streaming-ASR/data_pipelines/codeswitch-builder/scripts/train_tokenizer.py \
+python data_pipeline/speechbrain_prep/train_tokenizer.py \
     --train_json data/vimedcss/train.json \
     --output_dir recipes/DSP_CodeSwitch/Tokenizer/save \
     --vocab_size 4000 \
-    --model_type bpe
+    --model_type bpe \
+    --seed 42
 ```
 
 ---
 
-## 🔬 PHASE 2 — Huấn luyện các mô hình Cơ sở (Baselines)
+## PHASE 2 — Huấn luyện các mô hình Cơ sở (Baselines)
 
 Các mô hình Baseline nằm tại: `recipes/Baselines/ASR/`
 Bạn có thể tùy chọn chạy mô hình Wav2Vec2, XLS-R, HuBERT, WavLM hay Whisper.

@@ -1,0 +1,88 @@
+# DSP-CS + Whisper Small
+# =======================
+# Applies DSP-CS (Dynamic Soft Prompting) to Whisper Small encoder-decoder.
+# LoRA on encoder + CausalPromptGenerator + Tanh Gate Injection
+# Whisper decoder fine-tuned for Vietnamese-English code-switching.
+
+seed: 2025
+__set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
+
+# Folder paths
+data_folder: ../../../data/vimedcss
+output_folder: !ref results/DSP_Whisper/<seed>
+save_folder: !ref <output_folder>/save
+train_log: !ref <output_folder>/train_log.txt
+
+# Data
+train_annotation: !ref <data_folder>/train.json
+valid_annotation: !ref <data_folder>/valid.json
+test_annotation: !ref <data_folder>/test.json
+
+# Flags
+warmup_only: False
+lid_loss_weight: 0.2
+
+# Training
+number_of_epochs: 50
+early_stop_patience: 5
+batch_size: 1
+lr_backbone: 0.0001       # LoRA + DSP components
+lr_decoder: 0.00005       # Whisper decoder (lower LR for pretrained decoder)
+weight_decay: 0.0001
+num_workers: 2
+
+# Dataloader
+train_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+    shuffle: True
+
+valid_dataloader_opts:
+    batch_size: !ref <batch_size>
+    num_workers: !ref <num_workers>
+
+# Vocab — Whisper built-in (~51K multilingual tokens)
+blank_index: 0
+
+# Epoch counter
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+# Model
+dsp_model: !new:dsp_whisper.DSP_Whisper
+    source: "openai/whisper-small"
+    save_path: "pretrained_models"
+    input_size: 768
+    hidden_size: 256
+    num_languages: 3
+    lora_rank: 16
+    lora_alpha: 32.0
+    dropout: 0.1
+    language: "vi"
+
+# Logger
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+# LR Scheduler
+# batch_size=1, grad_accum=4 → effective ~2955 updates/epoch × 50 = 147750
+lr_annealing: !new:speechbrain.nnet.schedulers.WarmAndExpDecayLRSchedule
+    lr: 1.0
+    n_warmup_steps: 500
+    total_steps: 147750
+    decay_factor: 0.1
+
+# Metrics
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+
+# Modules
+modules:
+    dsp_model: !ref <dsp_model>
+
+# Checkpointer
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        dsp_model: !ref <dsp_model>
+        epoch_counter: !ref <epoch_counter>
+        lr_annealing: !ref <lr_annealing>

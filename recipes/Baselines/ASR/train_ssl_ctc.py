@@ -19,6 +19,20 @@ logger = get_logger(__name__)
 
 
 class BaselineASR(sb.Brain):
+    def init_optimizers(self):
+        """Custom optimizer with separate LR for backbone and CTC head."""
+        self.optimizer = torch.optim.Adam([
+            {"params": self.modules.wav2vec2.parameters(),
+             "lr": self.hparams.lr_wav2vec2},
+            {"params": self.modules.ctc_lin.parameters(),
+             "lr": self.hparams.lr_ctc},
+        ])
+        # Store initial LRs so we can apply the scheduler as a multiplier
+        self._base_lrs = [self.hparams.lr_wav2vec2, self.hparams.lr_ctc]
+        self.optimizers_dict = {"opt_class": self.optimizer}
+        if self.checkpointer is not None:
+            self.checkpointer.add_recoverable("optimizer", self.optimizer)
+
     def compute_forward(self, batch, stage):
         """Forward pass for CTC-only ASR."""
         batch = batch.to(self.device)
@@ -37,7 +51,7 @@ class BaselineASR(sb.Brain):
         # SpecAugment applied on features (after backbone, before CTC projection)
         # More standard for SSL fine-tuning than waveform augmentation.
         if stage == sb.Stage.TRAIN and getattr(self.hparams, "enable_spec_augment", False):
-            features = self.modules.spec_augment(features, wav_lens)
+            features, _ = self.modules.spec_augment(features, wav_lens)
         
         # 2. Linear projection to vocab size for CTC
         logits = self.modules.ctc_lin(features)
@@ -45,12 +59,13 @@ class BaselineASR(sb.Brain):
         
         predictions = {"p_ctc": p_ctc}
 
-        # 3. Decode during evaluation
+        # 3. CTC Greedy Decode during evaluation
         if stage != sb.Stage.TRAIN:
-            # We use CTC greedy decoding for the baseline for simplicity and speed.
-            # If using an external LM, ctc_search can be swapped here.
+            from speechbrain.decoders.ctc import ctc_greedy_decode
             p_ctc_det = p_ctc.detach()
-            sequence, _, _, _ = self.hparams.valid_search(p_ctc_det, wav_lens)
+            sequence = ctc_greedy_decode(
+                p_ctc_det, wav_lens, blank_id=self.hparams.blank_index
+            )
             predictions["tokens"] = sequence
 
         return predictions
@@ -72,7 +87,7 @@ class BaselineASR(sb.Brain):
         # Compute Word Error Rate (WER) during evaluation
         if stage != sb.Stage.TRAIN and "tokens" in predictions:
             predicted_words = [
-                self.hparams.tokenizer.decode_ids(prediction).split(" ")
+                self.hparams.tokenizer.sp.decode_ids(prediction).split(" ")
                 for prediction in predictions["tokens"]
             ]
             target_words = [words.split(" ") for words in batch.words]
@@ -90,15 +105,44 @@ class BaselineASR(sb.Brain):
         return loss
 
     def on_stage_start(self, stage, epoch):
-        """Initialize metrics."""
+        """Initialize metrics and handle backbone freeze/unfreeze."""
         if stage != sb.Stage.TRAIN:
             self.wer_metric = self.hparams.error_rate_computer()
             self.cs_wer_metric = self.hparams.error_rate_computer()
 
+        # Freeze backbone for first N epochs (CTC head trains alone first)
+        freeze_epochs = getattr(self.hparams, "freeze_wav2vec2_epochs", 0)
+        if stage == sb.Stage.TRAIN and freeze_epochs > 0:
+            if epoch <= freeze_epochs:
+                self.modules.wav2vec2.freeze = True
+                for p in self.modules.wav2vec2.parameters():
+                    p.requires_grad = False
+                # Set backbone LR to 0 so scheduler doesn't affect frozen params
+                self.optimizer.param_groups[0]["lr"] = 0.0
+                if epoch == 1:
+                    logger.info(f"Backbone FROZEN for epochs 1-{freeze_epochs}")
+            else:
+                self.modules.wav2vec2.freeze = False
+                for p in self.modules.wav2vec2.parameters():
+                    p.requires_grad = True
+                if epoch == freeze_epochs + 1:
+                    logger.info("Backbone UNFROZEN — fine-tuning all parameters")
+
     def on_fit_batch_end(self, batch, outputs, loss, should_update):
-        """Update the learning rate schedule."""
-        if should_update:
-            self.hparams.lr_annealing(self.optimizer)
+        """Step the LR scheduler (per-step warmup + decay).
+        
+        We use the scheduler with base_lr=1.0 so it outputs a scale factor.
+        Then multiply each param group's base LR by this factor to preserve
+        the backbone/CTC head LR ratio.
+        """
+        if should_update and hasattr(self.hparams, "lr_annealing"):
+            scheduler = self.hparams.lr_annealing
+            # Advance the scheduler step to get the current scale factor
+            scheduler(self.optimizer)
+            scale = scheduler.current_lr  # The factor just computed
+            # Re-apply per-group LRs using the scale factor
+            for i, group in enumerate(self.optimizer.param_groups):
+                group["lr"] = self._base_lrs[i] * scale
 
     def on_stage_end(self, stage, stage_loss, epoch):
         """Log stats and save checkpoints."""
@@ -135,6 +179,9 @@ def dataio_prepare(hparams):
     @sb.utils.data_pipeline.provides("sig")
     def audio_pipeline(wav):
         sig = sb.dataio.dataio.read_audio(wav)
+        # Ensure mono (1D tensor) — some files may be stereo (2D)
+        if sig.ndim > 1:
+            sig = sig.mean(dim=-1)  # Average channels to mono
         return sig
 
     # 2. Text Pipeline
@@ -142,7 +189,7 @@ def dataio_prepare(hparams):
     @sb.utils.data_pipeline.provides("words", "tokens")
     def text_pipeline(words):
         yield words
-        tokens_list = hparams["tokenizer"].encode_as_ids(words)
+        tokens_list = hparams["tokenizer"].sp.encode_as_ids(words)
         yield torch.LongTensor(tokens_list)
 
     datasets = {}
@@ -177,7 +224,6 @@ if __name__ == "__main__":
 
     asr_brain = BaselineASR(
         modules=hparams["modules"],
-        opt_class=hparams["opt_class"],
         hparams=hparams,
         run_opts=run_opts,
         checkpointer=hparams["checkpointer"],

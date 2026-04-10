@@ -3,15 +3,15 @@ seed: 2025
 __set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
 
 # Folder paths
-data_folder: ../../../data_pipelines/codeswitch-builder  # Path to ViMedCSS output
+data_folder: ../../../../data/vimedcss  # Path to ViMedCSS output
 output_folder: !ref results/Baseline_Whisper_Small/<seed>
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt
 
 # JSON Annotations
-train_annotation: !ref <data_folder>/outputs/train.json
-valid_annotation: !ref <data_folder>/outputs/valid.json
-test_annotation: !ref <data_folder>/outputs/test.json
+train_annotation: !ref <data_folder>/train.json
+valid_annotation: !ref <data_folder>/valid.json
+test_annotation: !ref <data_folder>/test.json
 
 # Training parameters
 number_of_epochs: 15

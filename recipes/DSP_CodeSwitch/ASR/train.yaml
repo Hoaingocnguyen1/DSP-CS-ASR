@@ -3,23 +3,23 @@ seed: 2025
 __set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
 
 # Folder paths
-data_folder: ../../../codeswitch-builder  # Where cs_text.txt / audio is stored relative to recipe
+data_folder: ../../../data/vimedcss  # Where train/valid/test JSON + wavs are stored
 output_folder: !ref results/DSP_W2VBERT_CodeSwitch/<seed>
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt
 
 # JSON Annotations
-train_annotation: !ref <data_folder>/outputs/train.json
-valid_annotation: !ref <data_folder>/outputs/valid.json
-test_annotation: !ref <data_folder>/outputs/test.json
+train_annotation: !ref <data_folder>/train.json
+valid_annotation: !ref <data_folder>/valid.json
+test_annotation: !ref <data_folder>/test.json
 
 # Curriculum Learning Flags
-warmup_only: False      # If True, Stage 1: freeze decoder, only train GRU for LID.
+warmup_only: True       # STAGE 1: Freeze decoder, only train GRU for LID.
 lid_loss_weight: 0.2    # Weight for LID loss during Joint Training (Stage 2)
 
 # Training parameters
 number_of_epochs: 15
-batch_size: 4
+batch_size: 1
 lr: 0.0001
 label_smoothing: 0.1
 num_workers: 2
@@ -50,7 +50,7 @@ valid_dataloader_opts:
     num_workers: !ref <num_workers>
 
 # Vocabulary and Decoders
-output_neurons: 4000  # Tokenizer vocab size
+output_neurons: 5000  # Tokenizer vocab size (BPE 5000)
 blank_index: 0
 bos_index: 1
 eos_index: 2

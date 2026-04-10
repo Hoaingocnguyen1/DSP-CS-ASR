@@ -3,20 +3,21 @@ seed: 2025
 __set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
 
 # Folder paths
-data_folder: ../../../data_pipelines/codeswitch-builder  # Path to ViMedCSS output
+data_folder: ../../../data/vimedcss  # Path to ViMedCSS output
 output_folder: !ref results/Baseline_Wav2Vec2_VI/<seed>
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt
 
 # JSON Annotations
-train_annotation: !ref <data_folder>/outputs/train.json
-valid_annotation: !ref <data_folder>/outputs/valid.json
-test_annotation: !ref <data_folder>/outputs/test.json
+train_annotation: !ref <data_folder>/train.json
+valid_annotation: !ref <data_folder>/valid.json
+test_annotation: !ref <data_folder>/test.json
 
 # Training parameters
-number_of_epochs: 15
-batch_size: 4
-lr: 0.0001
+number_of_epochs: 30
+batch_size: 2
+lr_wav2vec2: 0.00001    # Lower LR for pretrained backbone
+lr_ctc: 0.001           # Higher LR for randomly-initialized CTC head
 label_smoothing: 0.1
 num_workers: 2
 
@@ -31,20 +32,19 @@ valid_dataloader_opts:
     num_workers: !ref <num_workers>
 
 # Vocabulary
-output_neurons: 4000  # Tokenizer vocab size
+output_neurons: 5000  # Tokenizer vocab size
 blank_index: 0
 
 # Epoch counter
 epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
     limit: !ref <number_of_epochs>
 
-# CTC Greedy Searcher for Evaluation
-valid_search: !new:speechbrain.decoders.ctc.CTCGreedySearcher
-    blank_index: !ref <blank_index>
+# CTC Greedy decoding is implemented directly in train_ssl_ctc.py
+# (no external searcher class needed)
 
 # Models
 # Baseline Wav2Vec2 Vietnamese (95M Params)
-wav2vec2: !new:speechbrain.lobes.models.huggingface_wav2vec.HuggingFaceWav2Vec2
+wav2vec2: !new:speechbrain.integrations.huggingface.wav2vec2.Wav2Vec2
     source: "nguyenvulebinh/wav2vec2-base-vietnamese-250h"
     save_path: "pretrained_models"
     output_norm: True
@@ -68,20 +68,46 @@ tokenizer: !new:speechbrain.tokenizers.SentencePiece.SentencePiece
     annotation_read: words
     model_type: bpe
     character_coverage: 1.0
+    annotation_format: json
 
-# Optimizer
-opt_class: !name:torch.optim.Adam
-    lr: !ref <lr>
+# Optimizer: handled by init_optimizers() in train_ssl_ctc.py
+# (separate param groups for backbone and CTC head)
 
 # Training Logger
 train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
     save_file: !ref <train_log>
 
+# LR Scheduler: warmup + exponential decay (per-step)
+# 5911 batches/epoch × 30 epochs = 177330 total steps
+# To customize: total_steps = batches_per_epoch × number_of_epochs
 lr_annealing: !new:speechbrain.nnet.schedulers.WarmAndExpDecayLRSchedule
     lr: !ref <lr>
     n_warmup_steps: 500
-    total_steps: 7500
-    decay_factor: 0.01
+    total_steps: 177330
+    decay_factor: 0.1
+
+# SpecAugment (applied on Wav2Vec2 features during training)
+enable_spec_augment: True
+
+time_drop: !new:speechbrain.augment.freq_domain.SpectrogramDrop
+    drop_length_low: 3
+    drop_length_high: 10
+    drop_count_low: 1
+    drop_count_high: 3
+    replace: "zeros"
+    dim: 1  # time masking
+
+feat_drop: !new:speechbrain.augment.freq_domain.SpectrogramDrop
+    drop_length_low: 5
+    drop_length_high: 15
+    drop_count_low: 1
+    drop_count_high: 2
+    replace: "zeros"
+    dim: 2  # feature masking
+
+spec_augment: !new:speechbrain.augment.augmenter.Augmenter
+    augmentations: [!ref <time_drop>, !ref <feat_drop>]
+    augment_prob: 0.8
 
 error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
 
@@ -89,11 +115,12 @@ error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
 modules:
     wav2vec2: !ref <wav2vec2>
     ctc_lin: !ref <ctc_lin>
+    spec_augment: !ref <spec_augment>
 
 checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
     checkpoints_dir: !ref <save_folder>
     recoverables:
         wav2vec2: !ref <wav2vec2>
         ctc_lin: !ref <ctc_lin>
-        lr_annealing: !ref <lr_annealing>
         epoch_counter: !ref <epoch_counter>
+        lr_annealing: !ref <lr_annealing>

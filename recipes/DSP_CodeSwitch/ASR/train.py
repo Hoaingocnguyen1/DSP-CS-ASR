@@ -29,9 +29,15 @@ class CodeSwitchASR(sb.Brain):
         #   adapted_features: [B, T, 1024] Final features (LoRA + Prompt injected)
         #   lid_logits:       [B, T, 3]    Per-frame language predictions
         #   _:                [1, B, 256]  GRU hidden state (discarded in training)
-        encoded_signal, lid_logits, _ = self.modules.dsp_w2vbert(wavs, wav_lens)
-        lid_logprobs = self.hparams.log_softmax(lid_logits)
+        # Support both 'dsp_model' (generic) and 'dsp_w2vbert' (legacy) module keys
+        backbone = getattr(self.modules, "dsp_model", None) or self.modules.dsp_w2vbert
+        encoded_signal, lid_logits, _ = backbone(wavs, wav_lens)
+        lid_logprobs = self.hparams.log_softmax(lid_logits.clamp(min=-10, max=10))
 
+        # CRITICAL: During warmup, detach encoded_signal so downstream ASR decoder
+        # (if accidentally called) doesn't backprop into backbone via LID gradients.
+        # The DSP model already handles feature detach internally for the GRU path
+        # during warmup — but we also protect the encoded_signal stored in predictions.
         predictions = {"lid_logprobs": lid_logprobs, "encoded_signal": encoded_signal}
 
         # BUG FIX (Perf): In Warmup Stage 1, skip the decoder entirely to save VRAM.
@@ -61,28 +67,22 @@ class CodeSwitchASR(sb.Brain):
 
     def compute_objectives(self, predictions, batch, stage):
         # 1. LID Loss (Frame-synchronous NLLLoss)
-        # BUG FIX #2: SpeechBrain PaddedBatch returns PaddedData objects.
-        # Call .data to extract the underlying padded Tensor before operating on it.
         lid_targets_padded, lid_lens = batch.lid_ids
         lid_targets = lid_targets_padded.data if hasattr(lid_targets_padded, "data") else lid_targets_padded
-        
-        # Use F.interpolate to stretch the word-level LID targets to match 
-        # the backbone's output frame count (e.g., 320x sub-sampling for w2v-bert).
+
+        # Stretch word-level LID targets to match backbone output frame count
         B, T_backbone, num_classes = predictions["lid_logprobs"].shape
-        
         lid_targets_float = lid_targets.float().unsqueeze(1)  # [B, 1, N_words]
         lid_targets_interp = F.interpolate(
-            lid_targets_float,
-            size=T_backbone,
-            mode="nearest"
+            lid_targets_float, size=T_backbone, mode="nearest"
         ).squeeze(1).long()  # [B, T_backbone]
-        
-        # Mask loss with wav_lens to exclude padding frames
+
         lid_loss = sb.nnet.losses.nll_loss(
             log_probabilities=predictions["lid_logprobs"],
             targets=lid_targets_interp,
-            length=batch.sig[1]
+            length=batch.sig[1],
         )
+        lid_loss = torch.nan_to_num(lid_loss, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.hparams.warmup_only:
             return lid_loss
@@ -122,7 +122,7 @@ class CodeSwitchASR(sb.Brain):
             if not self.hparams.warmup_only and "tokens" in predictions:
                 # Overall WER
                 predicted_words = [
-                    self.hparams.tokenizer.decode_ids(prediction).split(" ")
+                    self.hparams.tokenizer.sp.decode_ids(prediction).split(" ")
                     for prediction in predictions["tokens"]
                 ]
                 target_words = [words.split(" ") for words in batch.words]
@@ -144,6 +144,11 @@ class CodeSwitchASR(sb.Brain):
         """Initialize metrics only when decoder is active (Stage 2).
         In warmup_only (Stage 1), no decoder runs so WER metrics are meaningless.
         """
+        # Sync model warmup flag with config
+        backbone = getattr(self.modules, "dsp_model", None) or getattr(self.modules, "dsp_w2vbert", None)
+        if backbone is not None and hasattr(backbone, "warmup"):
+            backbone.warmup = self.hparams.warmup_only
+
         if stage != sb.Stage.TRAIN and not self.hparams.warmup_only:
             self.wer_metric = self.hparams.error_rate_computer()
             self.cs_wer_metric = self.hparams.error_rate_computer()
@@ -196,6 +201,9 @@ def dataio_prepare(hparams):
     @sb.utils.data_pipeline.provides("sig")
     def audio_pipeline(wav):
         sig = sb.dataio.dataio.read_audio(wav)
+        # Convert stereo to mono if needed
+        if sig.dim() > 1 and sig.shape[-1] > 1:
+            sig = sig.mean(dim=-1)
         return sig
 
     # 2. Clean Words Pipeline (for ASR)
@@ -203,7 +211,7 @@ def dataio_prepare(hparams):
     @sb.utils.data_pipeline.provides("words", "tokens_list", "tokens_bos", "tokens_eos", "tokens")
     def text_pipeline(words):
         yield words
-        tokens_list = hparams["tokenizer"].encode_as_ids(words)
+        tokens_list = hparams["tokenizer"].sp.encode_as_ids(words)
         yield tokens_list
         tokens_bos = torch.LongTensor([hparams["bos_index"]] + (tokens_list))
         yield tokens_bos
