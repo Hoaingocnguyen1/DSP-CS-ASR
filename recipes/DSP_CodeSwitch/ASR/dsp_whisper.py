@@ -173,6 +173,49 @@ class DSP_Whisper(nn.Module):
         self.prompt_dropout = nn.Dropout(p=dropout)
         self.gate = nn.Parameter(torch.zeros(input_size))
 
+    @property
+    def model(self):
+        return self.whisper.model
+
+    @property
+    def tokenizer(self):
+        return self.whisper.tokenizer
+
+    @property
+    def bos(self):
+        return self.whisper.bos
+
+    @property
+    def eos(self):
+        return self.whisper.eos
+
+    @property
+    def bos_lm(self):
+        return self.whisper.bos_lm
+
+    @property
+    def bos_prev(self):
+        return self.whisper.bos_prev
+
+    @property
+    def no_speech(self):
+        return self.whisper.no_speech
+
+    @property
+    def transcribe(self):
+        return self.whisper.transcribe
+
+    @property
+    def translate(self):
+        return self.whisper.translate
+
+    @property
+    def non_speech_tokens(self):
+        return self.whisper.non_speech_tokens
+
+    def set_task(self, task):
+        self.whisper.set_task(task)
+
     def forward(self, wav, decoder_input_ids, wav_lens=None):
         """
         Arguments
@@ -232,3 +275,14 @@ class DSP_Whisper(nn.Module):
             use_cache=True, past_key_values=past_key_values,
         )
         return logits, attn, past_kv
+
+    def forward_decoder(
+        self, encoder_out, decoder_input_ids, use_cache=True, past_key_values=None
+    ):
+        """Expose Whisper decoder API for SpeechBrain searchers."""
+        return self.whisper.forward_decoder(
+            encoder_out,
+            decoder_input_ids,
+            use_cache=use_cache,
+            past_key_values=past_key_values,
+        )

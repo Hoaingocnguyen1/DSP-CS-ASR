@@ -7,10 +7,11 @@ code-switching ASR using SpeechBrain's Brain class.
 
 Loss: (1 - lid_w) * seq2seq_CE + lid_w * LID_focal
 Decoder: Whisper autoregressive decoder
-Evaluation: WER via greedy decoding
+Evaluation: WER via Whisper beam search
 """
 
 import sys
+from pathlib import Path
 import torch
 import torch.nn.functional as F
 from hyperpyyaml import load_hyperpyyaml
@@ -21,6 +22,82 @@ logger = get_logger(__name__)
 
 
 class DSP_Whisper_ASR(sb.Brain):
+    lid_label_names = ("SIL", "VI", "EN")
+
+    @staticmethod
+    def _compute_lid_targets(batch, num_classes):
+        """Interpolate word-level LID targets to encoder frame resolution."""
+        lid_targets_padded, lid_lens = batch.lid_ids
+        lid_targets = (
+            lid_targets_padded.data
+            if hasattr(lid_targets_padded, "data")
+            else lid_targets_padded
+        )
+        target_lengths = torch.round(lid_lens * lid_targets.shape[1]).long()
+        target_mask = (
+            torch.arange(lid_targets.shape[1], device=lid_targets.device)
+            .unsqueeze(0)
+            .expand(lid_targets.shape[0], -1)
+        ) < target_lengths.unsqueeze(1)
+        lid_targets = lid_targets.masked_fill(~target_mask, 0)
+
+        return lid_targets
+
+    @staticmethod
+    def _compute_frame_mask(lengths, max_len, device):
+        return (
+            torch.arange(max_len, device=device)
+            .unsqueeze(0)
+            .expand(lengths.shape[0], -1)
+        ) < lengths.unsqueeze(1)
+
+    def _get_current_lid_weight(self, epoch):
+        """Epoch-wise linear schedule for the auxiliary LID loss."""
+        start_w = getattr(self.hparams, "lid_loss_weight_start", None)
+        end_w = getattr(self.hparams, "lid_loss_weight_end", None)
+        if start_w is None or end_w is None:
+            return self.hparams.lid_loss_weight
+
+        start_epoch = getattr(self.hparams, "lid_loss_weight_decay_start_epoch", 1)
+        end_epoch = getattr(
+            self.hparams,
+            "lid_loss_weight_decay_end_epoch",
+            self.hparams.number_of_epochs,
+        )
+
+        if epoch <= start_epoch:
+            return start_w
+        if epoch >= end_epoch:
+            return end_w
+
+        progress = (epoch - start_epoch) / max(end_epoch - start_epoch, 1)
+        return start_w + progress * (end_w - start_w)
+
+    def _write_lid_confusion(self, stage, epoch):
+        """Persist confusion matrix for later LID/code-switch analysis."""
+        out_dir = Path(self.hparams.output_folder)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        path = out_dir / f"lid_confusion_{stage.name.lower()}_epoch{epoch}.txt"
+
+        confusion = self.lid_confusion.cpu()
+        labels = self.lid_label_names[: self.lid_num_classes]
+        lines = [
+            f"Stage: {stage.name}",
+            f"Epoch: {epoch}",
+            f"LID-ACC: {100.0 * self.lid_correct / max(self.lid_total, 1):.4f}",
+            f"LID-mF1: {self._summarize_lid_metrics()['LID-mF1']:.4f}",
+            "",
+            "Labels: " + " ".join(labels),
+            "Confusion Matrix (rows=target, cols=pred)",
+            "\t" + "\t".join(labels),
+        ]
+
+        for i, label in enumerate(labels):
+            row = "\t".join(str(int(x)) for x in confusion[i].tolist())
+            lines.append(f"{label}\t{row}")
+
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
     def init_optimizers(self):
         """Separate LRs for DSP backbone vs decoder."""
         # Group 1: LoRA + CausalPromptGenerator + Gate (backbone side)
@@ -47,6 +124,37 @@ class DSP_Whisper_ASR(sb.Brain):
         if self.checkpointer is not None:
             self.checkpointer.add_recoverable("optimizer", self.optimizer)
 
+    def optimizers_step(self):
+        """Clip and step all optimizer param groups, not only the first one."""
+        if self.optimizers_dict is not None:
+            valid_optimizers = self.freeze_optimizers(self.optimizers_dict)
+        elif self.opt_class is not None:
+            valid_optimizers = {"optimizer": self.optimizer}
+        else:
+            return
+
+        for opt in valid_optimizers.values():
+            self.scaler.unscale_(opt)
+
+        for opt in valid_optimizers.values():
+            for group in opt.param_groups:
+                torch.nn.utils.clip_grad_norm_(
+                    group["params"], self.max_grad_norm
+                )
+
+        if not self.scaler.is_enabled() and self.skip_nonfinite_grads:
+            self.check_gradients()
+
+        for opt in valid_optimizers.values():
+            self.scaler.step(opt)
+
+        self.scaler.update()
+
+        for opt in valid_optimizers.values():
+            opt.zero_grad(set_to_none=True)
+
+        self.optimizer_step += 1
+
     def compute_forward(self, batch, stage):
         batch = batch.to(self.device)
         wavs, wav_lens = batch.sig
@@ -58,7 +166,7 @@ class DSP_Whisper_ASR(sb.Brain):
         dsp = self.modules.dsp_model
         whisper = dsp.whisper
 
-        bos_tokens = self._get_decoder_input_tokens(tokens)
+        bos_tokens = self._get_decoder_input_tokens(tokens, token_lens)
 
         # Forward through DSP_Whisper
         logits, lid_logits = dsp(wavs, bos_tokens)
@@ -79,13 +187,18 @@ class DSP_Whisper_ASR(sb.Brain):
             self._logged_mode = True
 
         if not self.hparams.warmup_only and stage != sb.Stage.TRAIN:
-            # Greedy decode for evaluation
-            predicted_tokens = self._greedy_decode(wavs)
+            encoder_out, _ = dsp.get_encoder_out(wavs)
+            search = (
+                self.hparams.valid_search
+                if stage == sb.Stage.VALID
+                else self.hparams.test_search
+            )
+            predicted_tokens, _, _, _ = search(encoder_out.detach(), wav_lens)
             predictions["pred_tokens"] = predicted_tokens
 
         return predictions
 
-    def _get_decoder_input_tokens(self, target_tokens):
+    def _get_decoder_input_tokens(self, target_tokens, target_lens):
         """Build Whisper decoder input: prefix tokens + target tokens."""
         dsp = self.modules.dsp_model
         whisper = dsp.whisper
@@ -96,58 +209,37 @@ class DSP_Whisper_ASR(sb.Brain):
         prefix = whisper.tokenizer.prefix_tokens
         prefix_tensor = torch.tensor(prefix, device=device).unsqueeze(0).expand(B, -1)
 
+        target_lengths = torch.round(target_lens * target_tokens.shape[1]).long()
+        target_mask = (
+            torch.arange(target_tokens.shape[1], device=device)
+            .unsqueeze(0)
+            .expand(B, -1)
+        ) < target_lengths.unsqueeze(1)
+        padded_targets = target_tokens.masked_fill(
+            ~target_mask, whisper.tokenizer.pad_token_id
+        )
+
         # Concat prefix + target tokens (teacher forcing input)
-        decoder_input = torch.cat([prefix_tensor, target_tokens], dim=1)
+        decoder_input = torch.cat([prefix_tensor, padded_targets], dim=1)
         return decoder_input
-
-    @torch.no_grad()
-    def _greedy_decode(self, wavs, max_len=224):
-        """Simple greedy decode for evaluation WER."""
-        dsp = self.modules.dsp_model
-        whisper = dsp.whisper
-        B = wavs.shape[0]
-        device = wavs.device
-
-        # Get encoder output with DSP injection
-        encoder_out, _ = dsp.get_encoder_out(wavs)
-
-        # Start with prefix tokens
-        prefix = whisper.tokenizer.prefix_tokens
-        generated = torch.tensor(prefix, device=device).unsqueeze(0).expand(B, -1)
-
-        eos_id = whisper.eos
-        past_kv = None
-
-        for step in range(max_len):
-            logits, _, past_kv = dsp.decode_step(
-                encoder_out, generated, past_key_values=past_kv,
-            )
-            next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)
-            generated = torch.cat([generated, next_token], dim=1)
-
-            # Stop if all sequences produced EOS
-            if (next_token.squeeze(-1) == eos_id).all():
-                break
-
-        return generated
 
     def compute_objectives(self, predictions, batch, stage):
         # --- 1. LID Loss (Focal Loss) ---
-        lid_targets_padded, lid_lens = batch.lid_ids
-        lid_targets = lid_targets_padded.data if hasattr(lid_targets_padded, "data") else lid_targets_padded
-
         lid_logprobs = predictions["lid_logprobs"]  # [B, 1500, 3]
         B, T_enc, C = lid_logprobs.shape
+        lid_targets = self._compute_lid_targets(batch, C)
 
         # Stretch word-level LID targets to encoder frame count (1500)
         lid_targets_float = lid_targets.float().unsqueeze(1)
         lid_targets_interp = F.interpolate(
             lid_targets_float, size=T_enc, mode="nearest"
         ).squeeze(1).long()
+        frame_lengths = torch.round(batch.sig[1] * T_enc).long()
+        frame_mask = self._compute_frame_mask(frame_lengths, T_enc, lid_logprobs.device)
 
         # Focal Loss (gamma=2.0)
-        lid_targets_flat = lid_targets_interp.reshape(-1).clamp(0, C - 1)
-        logprobs_flat = lid_logprobs.reshape(-1, C)
+        lid_targets_flat = lid_targets_interp.masked_select(frame_mask).clamp(0, C - 1)
+        logprobs_flat = lid_logprobs[frame_mask]
         target_logprobs = logprobs_flat.gather(1, lid_targets_flat.unsqueeze(1)).squeeze(1)
         focal_weight = (1.0 - target_logprobs.exp()) ** 2.0
         lid_loss = -(focal_weight * target_logprobs).mean()
@@ -157,31 +249,44 @@ class DSP_Whisper_ASR(sb.Brain):
             return lid_loss
 
         # --- 2. Seq2Seq Cross-Entropy Loss ---
-        tokens, token_lens = batch.tokens
+        tokens_eos, tokens_eos_lens = batch.tokens_eos
         logits = predictions["logits"]  # [B, prefix_len + seq_len, vocab]
 
-        # Target: same as input but shifted (predict next token)
-        # logits[:, prefix_len-1:-1, :] should predict tokens
+        # Predict transcript tokens plus EOS.
         prefix_len = len(self.modules.dsp_model.whisper.tokenizer.prefix_tokens)
-        # Prediction starts after the last prefix token
-        pred_logits = logits[:, prefix_len - 1:-1, :]  # [B, seq_len, vocab]
+        pred_logits = logits[:, prefix_len - 1:, :]
+
+        target_lengths = torch.round(
+            tokens_eos_lens * tokens_eos.shape[1]
+        ).long()
+        target_mask = (
+            torch.arange(tokens_eos.shape[1], device=tokens_eos.device)
+            .unsqueeze(0)
+            .expand(tokens_eos.shape[0], -1)
+        ) < target_lengths.unsqueeze(1)
+        seq_targets = tokens_eos.masked_fill(~target_mask, -100)
 
         # Flatten for cross-entropy
         vocab_size = pred_logits.shape[-1]
         seq_loss = F.cross_entropy(
             pred_logits.reshape(-1, vocab_size),
-            tokens.reshape(-1),
+            seq_targets.reshape(-1),
             ignore_index=-100,
+            label_smoothing=getattr(self.hparams, "label_smoothing", 0.0),
         )
         seq_loss = torch.nan_to_num(seq_loss, nan=0.0, posinf=100.0, neginf=0.0)
 
         # --- Loss combination ---
-        lid_w = self.hparams.lid_loss_weight
+        current_epoch = getattr(self.hparams.epoch_counter, "current", 1)
+        lid_w = self._get_current_lid_weight(current_epoch)
         loss = lid_w * lid_loss + (1.0 - lid_w) * seq_loss
 
         # Log once
         if not hasattr(self, "_logged_loss"):
-            logger.info(f"Losses: lid={lid_loss.item():.4f}, seq2seq={seq_loss.item():.4f}, total={loss.item():.4f}")
+            logger.info(
+                f"Losses: lid={lid_loss.item():.4f}, seq2seq={seq_loss.item():.4f}, "
+                f"lid_w={lid_w:.4f}, total={loss.item():.4f}"
+            )
             self._logged_loss = True
 
         # WER during evaluation
@@ -203,13 +308,58 @@ class DSP_Whisper_ASR(sb.Brain):
             tgt_cs = [filter_cs(tw) for tw in target_words]
             self.cs_wer_metric.append(batch.id, pred_cs, tgt_cs)
 
+            lid_pred = lid_logprobs.argmax(dim=-1)
+            self._update_lid_metrics(lid_pred, lid_targets, batch.sig[1])
+
         return loss
+
+    def _update_lid_metrics(self, lid_pred, lid_targets, wav_lens):
+        """Accumulate frame-level LID accuracy and confusion matrix."""
+        frame_lengths = torch.round(wav_lens * lid_pred.shape[1]).long()
+        frame_mask = (
+            torch.arange(lid_pred.shape[1], device=lid_pred.device)
+            .unsqueeze(0)
+            .expand(lid_pred.shape[0], -1)
+        ) < frame_lengths.unsqueeze(1)
+
+        pred_flat = lid_pred.masked_select(frame_mask)
+        target_flat = lid_targets.masked_select(frame_mask)
+
+        self.lid_correct += (pred_flat == target_flat).sum().item()
+        self.lid_total += target_flat.numel()
+
+        indices = target_flat * self.lid_num_classes + pred_flat
+        self.lid_confusion += torch.bincount(
+            indices,
+            minlength=self.lid_num_classes * self.lid_num_classes,
+        ).reshape(self.lid_num_classes, self.lid_num_classes).cpu()
+
+    def _summarize_lid_metrics(self):
+        if self.lid_total == 0:
+            return {"LID-ACC": 0.0, "LID-mF1": 0.0}
+
+        confusion = self.lid_confusion.float()
+        tp = confusion.diag()
+        precision = tp / confusion.sum(dim=0).clamp_min(1.0)
+        recall = tp / confusion.sum(dim=1).clamp_min(1.0)
+        f1 = 2 * precision * recall / (precision + recall).clamp_min(1e-8)
+
+        return {
+            "LID-ACC": 100.0 * self.lid_correct / self.lid_total,
+            "LID-mF1": 100.0 * f1.mean().item(),
+        }
 
     def on_stage_start(self, stage, epoch):
         if hasattr(self.modules.dsp_model, "warmup"):
             self.modules.dsp_model.warmup = self.hparams.warmup_only
 
         if stage != sb.Stage.TRAIN:
+            self.lid_num_classes = self.modules.dsp_model.prompt_generator.lid_head.out_features
+            self.lid_correct = 0
+            self.lid_total = 0
+            self.lid_confusion = torch.zeros(
+                self.lid_num_classes, self.lid_num_classes, dtype=torch.long
+            )
             self.wer_metric = self.hparams.error_rate_computer()
             self.cs_wer_metric = self.hparams.error_rate_computer()
 
@@ -228,6 +378,8 @@ class DSP_Whisper_ASR(sb.Brain):
         elif not self.hparams.warmup_only:
             stage_stats["WER"] = self.wer_metric.summarize("error_rate")
             stage_stats["cs-WER"] = self.cs_wer_metric.summarize("error_rate")
+            stage_stats["lid_w"] = self._get_current_lid_weight(epoch)
+            stage_stats.update(self._summarize_lid_metrics())
 
         if stage == sb.Stage.VALID:
             current_lr = self.optimizer.param_groups[0]["lr"]
@@ -259,12 +411,16 @@ class DSP_Whisper_ASR(sb.Brain):
                 meta={"WER": stage_stats.get("WER", stage_loss)},
                 min_keys=["WER"],
             )
+            if not self.hparams.warmup_only:
+                self._write_lid_confusion(stage, epoch)
 
         elif stage == sb.Stage.TEST:
             self.hparams.train_logger.log_stats(
                 stats_meta={"Epoch loaded": self.hparams.epoch_counter.current},
                 test_stats=stage_stats,
             )
+            if not self.hparams.warmup_only:
+                self._write_lid_confusion(stage, self.hparams.epoch_counter.current)
 
 
 def dataio_prepare(hparams):
@@ -279,13 +435,14 @@ def dataio_prepare(hparams):
         return sig
 
     @sb.utils.data_pipeline.takes("words")
-    @sb.utils.data_pipeline.provides("words", "tokens")
+    @sb.utils.data_pipeline.provides("words", "tokens", "tokens_eos")
     def text_pipeline(words):
         yield words
         # Use Whisper tokenizer
         whisper = hparams["dsp_model"].whisper
         token_ids = whisper.tokenizer.encode(words, add_special_tokens=False)
         yield torch.LongTensor(token_ids)
+        yield torch.LongTensor(token_ids + [whisper.eos])
 
     lid_map = {"VI": 1, "EN": 2, "SIL": 0}
 
@@ -308,7 +465,7 @@ def dataio_prepare(hparams):
             json_path=data_info[dataset],
             replacements={"data_root": hparams["data_folder"]},
             dynamic_items=[audio_pipeline, text_pipeline, lid_pipeline],
-            output_keys=["id", "sig", "words", "tokens", "lid_ids"],
+            output_keys=["id", "sig", "words", "tokens", "tokens_eos", "lid_ids"],
         )
     return datasets
 

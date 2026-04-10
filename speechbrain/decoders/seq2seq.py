@@ -1998,7 +1998,11 @@ class S2SWhisperBeamSearcher(S2SBeamSearcher):
         self.prefix = prefix
         self.prompt = prompt
 
-        self.max_attn_tokens = self.model.model.decoder.config.max_length
+        self.max_attn_tokens = getattr(
+            self.model.model.decoder.config,
+            "max_target_positions",
+            getattr(self.model.model.decoder.config, "max_length", 448)
+        )
         self.sample_len = sample_len or self.max_attn_tokens // 2
 
         self.initial_tokens = self._get_initial_tokens()

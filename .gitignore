@@ -157,3 +157,10 @@ dmypy.json
 
 # Mac OS
 .DS_Store
+
+# Custom Ignores
+=*
+.codex
+**/STAGE1_CTC_BACKUP/
+data/
+**/save/
