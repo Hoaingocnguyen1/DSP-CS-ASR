@@ -2182,7 +2182,7 @@ class S2SWhisperBeamSearcher(S2SBeamSearcher):
                 ] = -torch.inf
 
         if self.suppress_tokens:
-            if self.model.config.suppress_tokens is None:
+            if getattr(self.model.config, "suppress_tokens", None) is None:
                 tokens_to_suppress = self.get_tokens_to_suppress
             else:
                 tokens_to_suppress = self.model.get_suppress_tokens

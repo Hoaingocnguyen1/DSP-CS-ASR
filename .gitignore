@@ -164,3 +164,7 @@ dmypy.json
 **/STAGE1_CTC_BACKUP/
 data/
 **/save/
+
+# Ignore zip files
+*.zip
+*.z0*
