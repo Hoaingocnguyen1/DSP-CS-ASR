@@ -161,30 +161,49 @@ class DSP_XLSR(nn.Module):
             dropout=dropout,
         )
 
-        # 4. LID-Conditioned Gate (ORIGINAL v3 architecture)
-        #    gate = gate_net(lid_probs)  → [B, T, 1024]
-        #    adapted = features + gate * prompt_proj(prompt) + scale * lang_embed(lid)
-        #    Gate is CONDITIONED on LID (not a scalar!), so injection adapts per-frame
-        self.gate_net = nn.Sequential(
-            nn.Linear(num_languages, hidden_size),   # 3 → 256
-            nn.ReLU(),
-            nn.Linear(hidden_size, input_size),       # 256 → 1024
-        )
-        # Init gate_net to output ~0 at start (safe identity)
-        nn.init.normal_(self.gate_net[2].weight, std=0.01)
-        nn.init.zeros_(self.gate_net[2].bias)
-
-        self.prompt_proj = nn.Linear(hidden_size, input_size)  # 256 → 1024
-        nn.init.normal_(self.prompt_proj.weight, std=0.01)
+        # 4. LID-Conditioned Gate Network for Prompt Injection
+        # Instead of a global gate (same for all frames), this generates
+        # per-frame gates conditioned on LID predictions.
+        # Key novelty: LID prediction → gate → language-aware feature adaptation
+        self.prompt_proj = nn.Linear(hidden_size, input_size)
+        nn.init.xavier_uniform_(self.prompt_proj.weight)
         nn.init.zeros_(self.prompt_proj.bias)
-
-        # Language embedding: adds language-specific bias to features
-        self.lang_embed = nn.Embedding(num_languages, input_size)  # 3 × 1024
-        self.lang_emb_scale = nn.Parameter(torch.tensor(0.0))  # Learnable scale, init 0
-
         self.prompt_dropout = nn.Dropout(p=dropout)
+        self.gate_net = nn.Sequential(
+            nn.Linear(num_languages, input_size // 4),
+            nn.ReLU(),
+            nn.Linear(input_size // 4, input_size),
+            nn.Tanh(),
+        )
+        # Init gate_net to output near-zero initially (stable start)
+        nn.init.zeros_(self.gate_net[-2].bias)
+        nn.init.normal_(self.gate_net[-2].weight, std=0.01)
+
+        # 5. Language Embedding: explicit language signal for CTC head
+        # Soft embedding from LID probs → CTC head knows which language each frame is
+        self.lang_embed = nn.Embedding(num_languages, input_size)
+        nn.init.normal_(self.lang_embed.weight, std=0.02)
+
+        # v2: Learnable injection scale (replaces fixed 0.1)
+        self.lang_emb_scale = nn.Parameter(torch.tensor(0.1))
 
     def forward(self, wav, wav_lens=None, hx=None):
+        """
+        Arguments
+        ---------
+        wav : torch.Tensor
+            Raw waveform [batch, time_samples]. 16kHz mono.
+        wav_lens : torch.Tensor
+            Relative lengths [batch], values in [0.0, 1.0].
+        hx : torch.Tensor, optional
+            GRU hidden state from previous chunk.
+
+        Returns
+        -------
+        adapted_features : torch.Tensor [batch, time_frames, 1024]
+        lid_logits : torch.Tensor [batch, time_frames, num_languages]
+        hx_new : torch.Tensor [1, batch, hidden_size]
+        """
         # 1. LoRA-adapted feature extraction [B, T, 1024]
         adapted_features = self.backbone(wav, wav_lens)
 
@@ -192,18 +211,16 @@ class DSP_XLSR(nn.Module):
         gru_input = adapted_features.detach() if self.warmup else adapted_features
         lid_logits, prompt, hx_new = self.prompt_generator(gru_input, hx)
 
-        # 3. LID-Conditioned Gate Injection (v3 architecture)
-        lid_probs = F.softmax(lid_logits.detach(), dim=-1)  # [B, T, 3]
-        gate = torch.tanh(self.gate_net(lid_probs))             # [B, T, 1024]
-        prompt_d = self.prompt_dropout(prompt)
-        injection = gate * self.prompt_proj(prompt_d)         # [B, T, 1024]
+        # 3. LID-Conditioned Prompt Injection
+        # Gate is conditioned on LID predictions → language-aware
+        # v3: Keep .detach() to prevent CTC-LID co-adaptation (caused overfitting in v2)
+        lid_probs = F.softmax(lid_logits.detach(), dim=-1)    # [B, T, num_langs]
+        gate = self.gate_net(lid_probs)                       # [B, T, input_size]
+        prompt_projected = self.prompt_dropout(self.prompt_proj(prompt))
+        adapted_features = adapted_features + gate * prompt_projected
 
-        # Language embedding: adds language-specific bias
-        lid_hard = lid_probs.argmax(dim=-1)                   # [B, T]
-        lang_bias = self.lang_emb_scale * self.lang_embed(lid_hard)
+        # 4. Language Embedding Injection (v2: learnable scale)
+        lang_emb = torch.matmul(lid_probs, self.lang_embed.weight)  # [B, T, input_size]
+        adapted_features = adapted_features + self.lang_emb_scale * lang_emb
 
-        adapted_features = adapted_features + injection + lang_bias
-
-        return adapted_features, lid_logits, hx_new, None
-
-
+        return adapted_features, lid_logits, hx_new

@@ -89,3 +89,41 @@ Sau khi môi trường đã sẵn sàng, bạn dùng lệnh sau để chạy hu�
 
 **Mẹo nhỏ:** Trên Vast AI hoặc Server remote, bạn nên chạy code trong `tmux` hoặc sử dụng `nohup` để tránh việc train bị dừng nếu bạn bị đứt kết nối SSH đột ngột.
 Ví dụ: `nohup ./scripts/train_server.sh dsp > train.log 2>&1 &`
+
+---
+
+## 5. Theo dõi và Đồng bộ Kết quả (Sync Results)
+
+Khi mô hình đang chạy trên Server, kết quả sẽ liên tục được lữu tại thư mục `results/`. Để xem hoặc lưu trữ kết quả này từ xa, bạn có thể dùng 1 trong 3 cách sau:
+
+### Cách 1: Kéo trực tiếp thư mục results về máy tính (Đơn giản nhất)
+Mở một Tab Terminal khác trên **máy cá nhân (Local)** của bạn và chạy lệnh rsync ngược lại từ server về:
+
+```bash
+# Nhớ đổi IP và Port cho đúng với Server
+rsync -avh --progress -e "ssh -p 42341" \
+  root@203.0.113.10:/workspace/DSP-CS-ASR/recipes/DSP_CodeSwitch/ASR/results/ \
+  /home/hnn/Documents/kltn/DSP-CS-ASR/recipes/DSP_CodeSwitch/ASR/results_from_server/
+```
+Lệnh này chỉ tải về những file mới hoặc có thay đổi (rất nhanh). Bạn có thể chạy lệnh này bất cứ lúc nào để cập nhật kết quả mới nhất.
+
+### Cách 2: Dùng VS Code Remote SSH + TensorBoard (Xem biểu đồ Real-time)
+Nếu bạn cấu hình VS Code để kết nối Remote SSH thẳng vào Vast AI:
+1. Mở Terminal của VS Code (trên server), chạy lệnh:
+   ```bash
+   tensorboard --logdir=./recipes/DSP_CodeSwitch/ASR/results
+   ```
+2. VS Code sẽ tự động nhận diện ứng dụng Web chạy ở cổng 6006 và hỏi bạn có muốn mở trên trình duyệt (thông qua tính năng Port Forwarding tích hợp). Ở máy nội bộ, bạn chỉ cần mở `http://localhost:6006` để xem đồ thị real-time.
+
+### Cách 3: Đẩy trực tiếp lên Google Drive bằng rclone
+Nếu bạn sợ server sập mất kết quả, bạn có thể tự động sao lưu lên Google Drive.
+Trên Server, cài đặt `rclone`:
+```bash
+sudo apt install rclone -y
+rclone config  # Làm theo hướng dẫn trên màn hình để liên kết với tài khoản Google Drive
+```
+Cấu hình xong, bạn có thể bật Auto-sync (ví dụ mỗi giờ đồng bộ 1 lần):
+```bash
+# Đẩy thư mục kết quả vào thư mục 'KLTN_Run_v1' trên Google Drive mỗi 3600s
+watch -n 3600 "rclone sync ./recipes/DSP_CodeSwitch/ASR/results/ Mydrive:KLTN_Run_v1/"
+```

@@ -65,6 +65,9 @@ class DSP_Whisper_ASR(sb.Brain):
             self.hparams.number_of_epochs,
         )
 
+        if epoch is None:
+            return end_w
+        
         if epoch <= start_epoch:
             return start_w
         if epoch >= end_epoch:
@@ -159,6 +162,10 @@ class DSP_Whisper_ASR(sb.Brain):
         batch = batch.to(self.device)
         wavs, wav_lens = batch.sig
 
+        if stage == sb.Stage.TEST:
+            # Accumulate audio duration for RTF (Real-Time Factor) calculation
+            self.total_audio_duration += (wavs.shape[1] * wav_lens).sum().item() / 16000.0
+
         # Get decoder input tokens (shift right for teacher forcing)
         tokens, token_lens = batch.tokens
 
@@ -237,11 +244,19 @@ class DSP_Whisper_ASR(sb.Brain):
         frame_lengths = torch.round(batch.sig[1] * T_enc).long()
         frame_mask = self._compute_frame_mask(frame_lengths, T_enc, lid_logprobs.device)
 
-        # Focal Loss (gamma=2.0)
+        # Alpha-Weighted Focal Loss (V2: gamma=3.0, alpha=[0.1, 0.3, 0.9])
+        # alpha weights: [other=0.1, VI=0.3, EN=0.9] — heavily penalize missed CS English
+        lid_alpha = getattr(self.hparams, "lid_alpha", [0.1, 0.3, 0.9])
+        lid_gamma = getattr(self.hparams, "lid_gamma", 3.0)
+        alpha_tensor = torch.tensor(lid_alpha[:C], device=lid_logprobs.device)
+        
         lid_targets_flat = lid_targets_interp.masked_select(frame_mask).clamp(0, C - 1)
         logprobs_flat = lid_logprobs[frame_mask]
         target_logprobs = logprobs_flat.gather(1, lid_targets_flat.unsqueeze(1)).squeeze(1)
-        focal_weight = (1.0 - target_logprobs.exp()) ** 2.0
+        
+        # Per-sample alpha based on target class
+        per_sample_alpha = alpha_tensor[lid_targets_flat]
+        focal_weight = per_sample_alpha * (1.0 - target_logprobs.exp()) ** lid_gamma
         lid_loss = -(focal_weight * target_logprobs).mean()
         lid_loss = torch.nan_to_num(lid_loss, nan=0.0, posinf=0.0, neginf=0.0)
 
@@ -294,8 +309,9 @@ class DSP_Whisper_ASR(sb.Brain):
             whisper = self.modules.dsp_model.whisper
             predicted_words = []
             for pred in predictions["pred_tokens"]:
-                # Decode, skipping special tokens
-                text = whisper.tokenizer.decode(pred.tolist(), skip_special_tokens=True)
+                # Decode, skipping special tokens. Handle both Tensor and list
+                pred_list = pred.tolist() if hasattr(pred, "tolist") else pred
+                text = whisper.tokenizer.decode(pred_list, skip_special_tokens=True)
                 predicted_words.append(text.strip().split())
 
             target_words = [words.split() for words in batch.words]
@@ -307,9 +323,17 @@ class DSP_Whisper_ASR(sb.Brain):
             pred_cs = [filter_cs(pw) for pw in predicted_words]
             tgt_cs = [filter_cs(tw) for tw in target_words]
             self.cs_wer_metric.append(batch.id, pred_cs, tgt_cs)
+            
+            def filter_native(words):
+                return [w for w in words if not (w.isascii() and w.isalpha() and len(w) > 2)]
+            pred_native = [filter_native(pw) for pw in predicted_words]
+            tgt_native = [filter_native(tw) for tw in target_words]
+            self.n_wer_metric.append(batch.id, pred_native, tgt_native)
+
+            self.cer_metric.append(batch.id, predicted_words, target_words)
 
             lid_pred = lid_logprobs.argmax(dim=-1)
-            self._update_lid_metrics(lid_pred, lid_targets, batch.sig[1])
+            self._update_lid_metrics(lid_pred, lid_targets_interp, batch.sig[1])
 
         return loss
 
@@ -362,6 +386,13 @@ class DSP_Whisper_ASR(sb.Brain):
             )
             self.wer_metric = self.hparams.error_rate_computer()
             self.cs_wer_metric = self.hparams.error_rate_computer()
+            self.n_wer_metric = self.hparams.error_rate_computer()
+            self.cer_metric = sb.utils.metric_stats.ErrorRateStats(split_tokens=True)
+            
+        if stage == sb.Stage.TEST:
+            import time
+            self.test_start_time = time.time()
+            self.total_audio_duration = 0.0
 
     def on_fit_batch_end(self, batch, outputs, loss, should_update):
         if should_update and hasattr(self.hparams, "lr_annealing"):
@@ -377,7 +408,9 @@ class DSP_Whisper_ASR(sb.Brain):
             self.train_stats = stage_stats
         elif not self.hparams.warmup_only:
             stage_stats["WER"] = self.wer_metric.summarize("error_rate")
-            stage_stats["cs-WER"] = self.cs_wer_metric.summarize("error_rate")
+            stage_stats["CER"] = self.cer_metric.summarize("error_rate")
+            stage_stats["CS-WER"] = self.cs_wer_metric.summarize("error_rate")
+            stage_stats["N-WER"] = self.n_wer_metric.summarize("error_rate")
             stage_stats["lid_w"] = self._get_current_lid_weight(epoch)
             stage_stats.update(self._summarize_lid_metrics())
 
@@ -421,6 +454,54 @@ class DSP_Whisper_ASR(sb.Brain):
             )
             if not self.hparams.warmup_only:
                 self._write_lid_confusion(stage, self.hparams.epoch_counter.current)
+                
+            import time
+            import torch
+            test_end_time = time.time()
+            total_decode_time = test_end_time - self.test_start_time
+            rtf = total_decode_time / self.total_audio_duration if getattr(self, "total_audio_duration", 0) > 0 else 0
+            
+            # Tính VRAM
+            vram_gb = 0
+            if torch.cuda.is_available():
+                vram_gb = torch.cuda.max_memory_allocated() / (1024**3)
+                
+            # Đếm params
+            total_params = sum(p.numel() for p in self.modules.parameters()) / 1e6
+            trainable_params = sum(p.numel() for p in self.modules.parameters() if p.requires_grad) / 1e6
+            
+            print("=" * 60)
+            print("ĐÁNH GIÁ CHUYÊN SÂU (COMPREHENSIVE METRICS - DSP LORA)")
+            print("=" * 60)
+            print("1. TỐC ĐỘ VÀ TÀI NGUYÊN (SPEED & RESOURCES):")
+            print(f" - Tổng thời gian giải mã : {total_decode_time:.2f} giây")
+            print(f" - Tổng thời lượng Audio  : {getattr(self, 'total_audio_duration', 0):.2f} giây")
+            print(f" - Tốc độ giải mã (RTF)   : {rtf:.4f} (Càng nhỏ càng tốt)")
+            print(f" - Đỉnh VRAM tiêu thụ     : {vram_gb:.2f} GB")
+            print(f" - Kích thước Level Model : {total_params:.1f} M params")
+            percent_train = (trainable_params / total_params * 100) if total_params > 0 else 0
+            print(f" - Tham số huấn luyện     : {trainable_params:.1f} M params ({percent_train:.2f}%)")
+            print("-" * 60)
+            
+            wer_summ = self.wer_metric.summarize()
+            N = wer_summ['num_scored_tokens']
+            if N > 0:
+                print("2. PHÂN TÍCH LỖI WER TỔNG THỂ (Substitutions/Deletions/Insertions):")
+                print(f" - Substitutions (S) : {wer_summ['substitutions']/N*100:.2f}% (Nhận diện sai từ)")
+                print(f" - Deletions (D)     : {wer_summ['deletions']/N*100:.2f}% (Bỏ sót từ)")
+                print(f" - Insertions (I)    : {wer_summ['insertions']/N*100:.2f}% (Nhận diện thừa từ)")
+            print("=" * 60)
+            
+            with open(self.hparams.output_folder + "/wer_test_details.txt", "w", encoding="utf-8") as w:
+                self.wer_metric.write_stats(w)
+            with open(self.hparams.output_folder + "/cer_test_details.txt", "w", encoding="utf-8") as w:
+                self.cer_metric.write_stats(w)
+            with open(self.hparams.output_folder + "/cswer_test_details.txt", "w", encoding="utf-8") as w:
+                self.cs_wer_metric.write_stats(w)
+            with open(self.hparams.output_folder + "/nwer_test_details.txt", "w", encoding="utf-8") as w:
+                self.n_wer_metric.write_stats(w)
+                
+            print(f"Đã lưu chi tiết căn chỉnh Alignment vào thư mục: {self.hparams.output_folder}")
 
 
 def dataio_prepare(hparams):

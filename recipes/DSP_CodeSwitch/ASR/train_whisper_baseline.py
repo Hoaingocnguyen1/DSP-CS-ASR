@@ -36,6 +36,10 @@ class WhisperBaselineASR(sb.Brain):
         wavs, wav_lens = batch.sig
         tokens, token_lens = batch.tokens
 
+        if stage == sb.Stage.TEST:
+            # Accumulate audio duration for RTF (Real-Time Factor) calculation
+            self.total_audio_duration += (wavs.shape[1] * wav_lens).sum().item() / 16000.0
+
         whisper = self.modules.whisper
         decoder_input_ids = self._get_decoder_input_tokens(tokens, token_lens)
         mel = whisper._get_mel(wavs)
@@ -106,8 +110,9 @@ class WhisperBaselineASR(sb.Brain):
             whisper = self.modules.whisper
             predicted_words = []
             for pred in predictions["pred_tokens"]:
+                token_ids = pred.tolist() if hasattr(pred, 'tolist') else pred
                 text = whisper.tokenizer.decode(
-                    pred.tolist(), skip_special_tokens=True
+                    token_ids, skip_special_tokens=True
                 )
                 predicted_words.append(text.strip().split())
 
@@ -125,12 +130,32 @@ class WhisperBaselineASR(sb.Brain):
             tgt_cs = [filter_cs(tw) for tw in target_words]
             self.cs_wer_metric.append(batch.id, pred_cs, tgt_cs)
 
+            def filter_native(words):
+                return [
+                    w
+                    for w in words
+                    if not (w.isascii() and w.isalpha() and len(w) > 2)
+                ]
+
+            pred_native = [filter_native(pw) for pw in predicted_words]
+            tgt_native = [filter_native(tw) for tw in target_words]
+            self.n_wer_metric.append(batch.id, pred_native, tgt_native)
+
+            self.cer_metric.append(batch.id, predicted_words, target_words)
+
         return loss
 
     def on_stage_start(self, stage, epoch):
         if stage != sb.Stage.TRAIN:
             self.wer_metric = self.hparams.error_rate_computer()
             self.cs_wer_metric = self.hparams.error_rate_computer()
+            self.n_wer_metric = self.hparams.error_rate_computer()
+            self.cer_metric = sb.utils.metric_stats.ErrorRateStats(split_tokens=True)
+            
+        if stage == sb.Stage.TEST:
+            import time
+            self.test_start_time = time.time()
+            self.total_audio_duration = 0.0
 
     def on_fit_batch_end(self, batch, outputs, loss, should_update):
         if should_update and hasattr(self.hparams, "lr_annealing"):
@@ -145,7 +170,9 @@ class WhisperBaselineASR(sb.Brain):
             self.train_stats = stage_stats
         else:
             stage_stats["WER"] = self.wer_metric.summarize("error_rate")
-            stage_stats["cs-WER"] = self.cs_wer_metric.summarize("error_rate")
+            stage_stats["CER"] = self.cer_metric.summarize("error_rate")
+            stage_stats["CS-WER"] = self.cs_wer_metric.summarize("error_rate")
+            stage_stats["N-WER"] = self.n_wer_metric.summarize("error_rate")
 
         if stage == sb.Stage.VALID:
             current_lr = self.optimizer.param_groups[0]["lr"]
@@ -163,6 +190,55 @@ class WhisperBaselineASR(sb.Brain):
                 stats_meta={"Epoch loaded": self.hparams.epoch_counter.current},
                 test_stats=stage_stats,
             )
+            
+            import time
+            import torch
+            test_end_time = time.time()
+            total_decode_time = test_end_time - self.test_start_time
+            rtf = total_decode_time / self.total_audio_duration if self.total_audio_duration > 0 else 0
+            
+            # Tính VRAM
+            vram_gb = 0
+            if torch.cuda.is_available():
+                vram_gb = torch.cuda.max_memory_allocated() / (1024**3)
+                
+            # Đếm params
+            total_params = sum(p.numel() for p in self.modules.parameters()) / 1e6
+            trainable_params = sum(p.numel() for p in self.modules.parameters() if p.requires_grad) / 1e6
+            
+            print("=" * 60)
+            print("ĐÁNH GIÁ CHUYÊN SÂU (COMPREHENSIVE METRICS)")
+            print("=" * 60)
+            print("1. TỐC ĐỘ VÀ TÀI NGUYÊN (SPEED & RESOURCES):")
+            print(f" - Tổng thời gian giải mã : {total_decode_time:.2f} giây")
+            print(f" - Tổng thời lượng Audio  : {self.total_audio_duration:.2f} giây")
+            print(f" - Tốc độ giải mã (RTF)   : {rtf:.4f} (Càng nhỏ càng tốt)")
+            print(f" - Đỉnh VRAM tiêu thụ     : {vram_gb:.2f} GB")
+            print(f" - Kích thước Level Model : {total_params:.1f} M params")
+            percent_train = (trainable_params / total_params * 100) if total_params > 0 else 0
+            print(f" - Tham số huấn luyện     : {trainable_params:.1f} M params ({percent_train:.2f}%)")
+            print("-" * 60)
+            
+            wer_summ = self.wer_metric.summarize()
+            N = wer_summ['num_scored_tokens']
+            if N > 0:
+                print("2. PHÂN TÍCH LỖI WER TỔNG THỂ (Substitutions/Deletions/Insertions):")
+                print(f" - Substitutions (S) : {wer_summ['substitutions']/N*100:.2f}% (Nhận diện sai từ)")
+                print(f" - Deletions (D)     : {wer_summ['deletions']/N*100:.2f}% (Bỏ sót từ - LỖI ĐẶC TRƯNG CỦA WHISPER)")
+                print(f" - Insertions (I)    : {wer_summ['insertions']/N*100:.2f}% (Nhận diện thừa từ)")
+            print("=" * 60)
+                
+            # Lưu detailed stats ra file txt (chứa chi tiết Bảng phân tích căn chỉnh từng câu)
+            with open(self.hparams.output_folder + "/wer_test_details.txt", "w", encoding="utf-8") as w:
+                self.wer_metric.write_stats(w)
+            with open(self.hparams.output_folder + "/cer_test_details.txt", "w", encoding="utf-8") as w:
+                self.cer_metric.write_stats(w)
+            with open(self.hparams.output_folder + "/cswer_test_details.txt", "w", encoding="utf-8") as w:
+                self.cs_wer_metric.write_stats(w)
+            with open(self.hparams.output_folder + "/nwer_test_details.txt", "w", encoding="utf-8") as w:
+                self.n_wer_metric.write_stats(w)
+                
+            print(f"Đã lưu chi tiết căn chỉnh Alignment vào thư mục: {self.hparams.output_folder}")
 
 
 def dataio_prepare(hparams):

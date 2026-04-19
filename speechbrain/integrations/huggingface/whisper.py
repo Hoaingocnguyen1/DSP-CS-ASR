@@ -387,6 +387,17 @@ class Whisper(HFTransformersInterface):
         if past_key_values is not None:
             # if KV cache we do not need to pass the whole past tokens but only t-1
             decoder_input_ids = decoder_input_ids[:, -1].unsqueeze(-1)
+            # Convert tuple back to DynamicCache for newer transformers (>=4.40)
+            if isinstance(past_key_values, tuple):
+                try:
+                    from transformers.cache_utils import DynamicCache
+                    cache = DynamicCache()
+                    for layer_past in past_key_values:
+                        key, value = layer_past[0], layer_past[1]
+                        cache.update(key, value, len(cache))
+                    past_key_values = cache
+                except ImportError:
+                    pass  # older transformers, tuple is fine
 
         output_states = self.model.decoder(
             encoder_hidden_states=encoder_states,
@@ -410,7 +421,12 @@ class Whisper(HFTransformersInterface):
             )
         ).float()
 
-        return logits, attn, output_states.past_key_values
+        # Convert DynamicCache back to tuple for SpeechBrain beam search compatibility
+        kv = output_states.past_key_values
+        if hasattr(kv, 'to_legacy_cache'):
+            kv = kv.to_legacy_cache()
+
+        return logits, attn, kv
 
     @cached_property
     def all_language_tokens(self):

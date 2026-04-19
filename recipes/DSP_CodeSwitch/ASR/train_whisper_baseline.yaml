@@ -17,10 +17,10 @@ label_smoothing: 0.1
 
 number_of_epochs: 50
 early_stop_patience: 5
-batch_size: 1
-lr_whisper: 0.00005
+batch_size: 8
+lr_whisper: 0.00015          # scaled ~3x for effective batch 32
 weight_decay: 0.0001
-num_workers: 2
+num_workers: 16               # AMD EPYC 7742 (32 cores available)
 min_decode_ratio: 0.0
 max_decode_ratio: 1.0
 valid_beam_size: 4
@@ -50,10 +50,12 @@ whisper: !new:speechbrain.integrations.huggingface.whisper.Whisper
 train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
     save_file: !ref <train_log>
 
+# batch_size=8, grad_accum=4 → effective batch=32
+# ~369 updates/epoch ÷ 4 = ~92 optimizer steps/epoch × 50 = 4600
 lr_annealing: !new:speechbrain.nnet.schedulers.WarmAndExpDecayLRSchedule
     lr: 1.0
-    n_warmup_steps: 500
-    total_steps: 147750
+    n_warmup_steps: 100
+    total_steps: 4600
     decay_factor: 0.1
 
 error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats

@@ -2141,6 +2141,8 @@ class S2SWhisperBeamSearcher(S2SBeamSearcher):
             reordered_past += (
                 tuple(
                     past_state.index_select(0, beam_idx)
+                    if past_state is not None
+                    else None
                     for past_state in layer_past
                 ),
             )

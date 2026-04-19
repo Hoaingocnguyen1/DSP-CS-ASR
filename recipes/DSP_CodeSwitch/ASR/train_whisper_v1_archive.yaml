@@ -1,7 +1,7 @@
-# DSP-LAA + Whisper Small (V4)
-# =============================
-# FSR-LAA: Frame-level Soft-Routed Language-Aware Adapters on Whisper.
-# LoRA on encoder + CausalPromptGenerator (LID Router) + 2 Language Adapters
+# DSP-CS + Whisper Small
+# =======================
+# Applies DSP-CS (Dynamic Soft Prompting) to Whisper Small encoder-decoder.
+# LoRA on encoder + CausalPromptGenerator + Tanh Gate Injection
 # Whisper decoder fine-tuned for Vietnamese-English code-switching.
 
 seed: 2025
@@ -9,7 +9,7 @@ __set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
 
 # Folder paths
 data_folder: ../../../data/vimedcss
-output_folder: !ref results/DSP_Whisper_LAA/<seed>
+output_folder: !ref results/DSP_Whisper/<seed>
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt
 
@@ -28,7 +28,7 @@ lid_loss_weight_decay_end_epoch: 15
 label_smoothing: 0.1
 
 # Training
-number_of_epochs: 50
+number_of_epochs: 0
 early_stop_patience: 5
 batch_size: 8
 lr_backbone: 0.0003       # LoRA + DSP components (scaled for larger batch)
@@ -64,7 +64,6 @@ dsp_model: !new:dsp_whisper.DSP_Whisper
     input_size: 768
     hidden_size: 256
     num_languages: 3
-    adapter_size: 64
     lora_rank: 16
     lora_alpha: 32.0
     dropout: 0.1
