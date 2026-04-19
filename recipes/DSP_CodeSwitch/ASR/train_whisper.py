@@ -176,12 +176,13 @@ class DSP_Whisper_ASR(sb.Brain):
         bos_tokens = self._get_decoder_input_tokens(tokens, token_lens)
 
         # Forward through DSP_Whisper
-        logits, lid_logits = dsp(wavs, bos_tokens)
+        logits, lid_logits, cross_attn = dsp(wavs, bos_tokens)
         lid_logprobs = F.log_softmax(lid_logits.clamp(min=-10, max=10), dim=-1)
 
         predictions = {
             "logits": logits,
             "lid_logprobs": lid_logprobs,
+            "cross_attn": cross_attn,
         }
 
         # Log training mode once
@@ -230,34 +231,101 @@ class DSP_Whisper_ASR(sb.Brain):
         decoder_input = torch.cat([prefix_tensor, padded_targets], dim=1)
         return decoder_input
 
+    def _expand_word_lid_to_token_lid(self, batch, prefix_len, device):
+        """Map word-level LID to BPE-token-level LID explicitly."""
+        whisper = self.modules.dsp_model.whisper
+        B = len(batch.words)
+        
+        max_tgt_len = prefix_len + batch.tokens[0].shape[1]
+        token_lids = torch.zeros(B, max_tgt_len, dtype=torch.long, device=device)
+        
+        lid_targets_padded = batch.lid_ids[0] if isinstance(batch.lid_ids, tuple) else batch.lid_ids
+        for b in range(B):
+            words = batch.words[b].split()
+            lids = lid_targets_padded[b]
+            
+            curr_idx = prefix_len
+            for word, w_lid in zip(words, lids):
+                if curr_idx > prefix_len:
+                    word_input = " " + word
+                else:
+                    word_input = word
+                    
+                tokens = whisper.tokenizer.encode(word_input, add_special_tokens=False)
+                t_len = len(tokens)
+                
+                if curr_idx + t_len <= max_tgt_len:
+                    token_lids[b, curr_idx : curr_idx + t_len] = w_lid
+                    curr_idx += t_len
+                else:
+                    rem = max_tgt_len - curr_idx
+                    if rem > 0:
+                        token_lids[b, curr_idx:] = w_lid
+                    break
+                    
+        return token_lids
+
     def compute_objectives(self, predictions, batch, stage):
-        # --- 1. LID Loss (Focal Loss) ---
-        lid_logprobs = predictions["lid_logprobs"]  # [B, 1500, 3]
+        # --- 1. eLAL: Enhanced Language Alignment Loss ---
+        lid_logprobs = predictions["lid_logprobs"]  # [B, T_enc, C]
+        cross_attn = predictions.get("cross_attn", None) # [B, heads, tgt_len, src_len]
+        
         B, T_enc, C = lid_logprobs.shape
         lid_targets = self._compute_lid_targets(batch, C)
-
-        # Stretch word-level LID targets to encoder frame count (1500)
-        lid_targets_float = lid_targets.float().unsqueeze(1)
-        lid_targets_interp = F.interpolate(
-            lid_targets_float, size=T_enc, mode="nearest"
-        ).squeeze(1).long()
+        
         frame_lengths = torch.round(batch.sig[1] * T_enc).long()
         frame_mask = self._compute_frame_mask(frame_lengths, T_enc, lid_logprobs.device)
 
-        # Alpha-Weighted Focal Loss (V2: gamma=3.0, alpha=[0.1, 0.3, 0.9])
-        # alpha weights: [other=0.1, VI=0.3, EN=0.9] — heavily penalize missed CS English
         lid_alpha = getattr(self.hparams, "lid_alpha", [0.1, 0.3, 0.9])
         lid_gamma = getattr(self.hparams, "lid_gamma", 3.0)
         alpha_tensor = torch.tensor(lid_alpha[:C], device=lid_logprobs.device)
-        
-        lid_targets_flat = lid_targets_interp.masked_select(frame_mask).clamp(0, C - 1)
-        logprobs_flat = lid_logprobs[frame_mask]
-        target_logprobs = logprobs_flat.gather(1, lid_targets_flat.unsqueeze(1)).squeeze(1)
-        
-        # Per-sample alpha based on target class
-        per_sample_alpha = alpha_tensor[lid_targets_flat]
-        focal_weight = per_sample_alpha * (1.0 - target_logprobs.exp()) ** lid_gamma
-        lid_loss = -(focal_weight * target_logprobs).mean()
+
+        if cross_attn is not None and stage == sb.Stage.TRAIN:
+            whisper = self.modules.dsp_model.whisper
+            prefix_len = len(whisper.tokenizer.prefix_tokens)
+            
+            # A. Word to BPE Mapping
+            token_lid = self._expand_word_lid_to_token_lid(batch, prefix_len, lid_logprobs.device)
+            
+            # B. Frame-to-Token Alignment via Cross-Attention
+            attn_avg = cross_attn.mean(dim=1)  # [B, tgt_len, src_len]
+            max_attn_vals, frame_to_token = attn_avg.max(dim=1)  # [B, src_len]
+            
+            # C. Confidence Masking (Threshold > 0.05)
+            conf_mask = max_attn_vals > 0.05
+            
+            # D. Pseudo Labels Extract
+            pseudo_labels = token_lid.gather(1, frame_to_token.clamp(0, token_lid.size(1) - 1))
+            
+            valid_mask = frame_mask & conf_mask
+            pseudo_flat = pseudo_labels.masked_select(valid_mask).clamp(0, C - 1)
+            logprobs_flat = lid_logprobs[valid_mask]
+            
+            # E. Label smoothed Focal Loss
+            target_logprobs = logprobs_flat.gather(1, pseudo_flat.unsqueeze(1)).squeeze(1)
+            per_sample_alpha = alpha_tensor[pseudo_flat]
+            
+            focal_weight = per_sample_alpha * (1.0 - target_logprobs.exp()) ** lid_gamma
+            smoothed_pseudo = torch.full_like(logprobs_flat, 0.1 / (C - 1))
+            smoothed_pseudo.scatter_(1, pseudo_flat.unsqueeze(1), 0.9)
+            
+            lid_loss = -(focal_weight.unsqueeze(1) * smoothed_pseudo * logprobs_flat).sum(dim=1).mean()
+            lid_targets_interp = pseudo_labels # for accuracy metrics reporting
+        else:
+            # Valid/Test Fallback to generic interpolation (just to log loss)
+            lid_targets_float = lid_targets.float().unsqueeze(1)
+            lid_targets_interp = F.interpolate(
+                lid_targets_float, size=T_enc, mode="nearest"
+            ).squeeze(1).long()
+            
+            lid_targets_flat = lid_targets_interp.masked_select(frame_mask).clamp(0, C - 1)
+            logprobs_flat = lid_logprobs[frame_mask]
+            target_logprobs = logprobs_flat.gather(1, lid_targets_flat.unsqueeze(1)).squeeze(1)
+            
+            per_sample_alpha = alpha_tensor[lid_targets_flat]
+            focal_weight = per_sample_alpha * (1.0 - target_logprobs.exp()) ** lid_gamma
+            lid_loss = -(focal_weight * target_logprobs).mean()
+            
         lid_loss = torch.nan_to_num(lid_loss, nan=0.0, posinf=0.0, neginf=0.0)
 
         if self.hparams.warmup_only:

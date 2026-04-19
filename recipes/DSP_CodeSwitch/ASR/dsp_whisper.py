@@ -316,12 +316,23 @@ class DSP_Whisper(nn.Module):
         adaptation = p_vi * vi_adapt + p_en * en_adapt
         encoder_out = encoder_out + adaptation
 
-        # 4. Whisper decoder
-        logits, attn, _ = self.whisper.forward_decoder(
-            encoder_out, decoder_input_ids
+        # 4. Whisper decoder (Bypass wrapper for eLAL cross_attention)
+        output_states = self.whisper.model.decoder(
+            encoder_hidden_states=encoder_out,
+            input_ids=decoder_input_ids,
+            output_attentions=True,
+            use_cache=False,
+            return_dict=True
         )
+        logits = (
+            output_states.last_hidden_state
+            @ torch.transpose(self.whisper.model.decoder.embed_tokens.weight.to(encoder_out.dtype), 0, 1)
+        ).float()
+        
+        # Lấy cross-attention cho LAL [B, num_heads, tgt_len, src_len]
+        cross_attn = output_states.cross_attentions[-1]
 
-        return logits, lid_logits
+        return logits, lid_logits, cross_attn
 
     def get_encoder_out(self, wav):
         """Get encoder output + LAA adaptation (for beam search)."""

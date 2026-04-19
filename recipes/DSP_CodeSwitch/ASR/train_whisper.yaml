@@ -21,8 +21,8 @@ test_annotation: !ref <data_folder>/test.json
 # Flags
 warmup_only: False
 lid_loss_weight: 0.1
-lid_loss_weight_start: 0.10
-lid_loss_weight_end: 0.03
+lid_loss_weight_start: 0.05
+lid_loss_weight_end: 0.01
 lid_loss_weight_decay_start_epoch: 1
 lid_loss_weight_decay_end_epoch: 15
 label_smoothing: 0.1
