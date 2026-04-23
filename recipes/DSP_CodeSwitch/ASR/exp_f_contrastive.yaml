@@ -1,15 +1,15 @@
-# DSP-LAA + Whisper Small (V4)
-# =============================
-# FSR-LAA: Frame-level Soft-Routed Language-Aware Adapters on Whisper.
-# LoRA on encoder + CausalPromptGenerator (LID Router) + 2 Language Adapters
-# Whisper decoder fine-tuned for Vietnamese-English code-switching.
+# EXP-F: Contrastive LAA (Feature Disentanglement)
+# ===============================================
+# Thay đổi: contrast_weight = 0.1, ortho_weight = 0.1
+# → Ép trực giao và giãn cách đặc trưng âm học của Tiếng Việt và Tiếng Anh.
 
 seed: 2025
+run_tag: base
 __set_seed: !apply:speechbrain.utils.seed_everything [!ref <seed>]
 
 # Folder paths
 data_folder: ../../../data/vimedcss
-output_folder: !ref results/DSP_Whisper_LAA/<seed>
+output_folder: !ref ../../../results/DSP_Whisper_EXP_F_contrastive/<seed>_<run_tag>
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt
 
@@ -27,6 +27,10 @@ lid_loss_weight_decay_start_epoch: 1
 lid_loss_weight_decay_end_epoch: 15
 label_smoothing: 0.1
 dynamic_lid_weights: True
+
+# ===== EXP-F: Contrastive LAA =====
+contrast_weight: 0.1
+ortho_weight: 0.0
 
 # Training
 number_of_epochs: 50

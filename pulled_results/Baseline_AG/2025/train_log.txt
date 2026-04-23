@@ -1,0 +1,18 @@
+epoch: 1, lr: 2.58e-04 - train loss: 2.61 - valid loss: 2.26, valid WER: 37.19, valid CER: 27.16, valid CS-WER: 50.22, valid N-WER: 37.62, valid training_stage: 1
+epoch: 2, lr: 2.14e-04 - train loss: 1.98 - valid loss: 2.11, valid WER: 27.74, valid CER: 20.22, valid CS-WER: 38.53, valid N-WER: 27.90, valid training_stage: 1
+epoch: 3, lr: 1.78e-04 - train loss: 1.73 - valid loss: 2.10, valid WER: 26.96, valid CER: 19.48, valid CS-WER: 36.75, valid N-WER: 27.42, valid training_stage: 1
+epoch: 4, lr: 1.48e-04 - train loss: 1.57 - valid loss: 2.14, valid WER: 29.05, valid CER: 21.33, valid CS-WER: 36.28, valid N-WER: 29.89, valid training_stage: 1
+epoch: 5, lr: 1.22e-04 - train loss: 1.49 - valid loss: 2.16, valid WER: 26.59, valid CER: 19.30, valid CS-WER: 36.39, valid N-WER: 27.07, valid training_stage: 1
+epoch: 6, lr: 1.01e-04 - train loss: 1.46 - valid loss: 2.16, valid WER: 25.84, valid CER: 18.76, valid CS-WER: 35.15, valid N-WER: 26.34, valid training_stage: 1
+epoch: 7, lr: 8.42e-05 - train loss: 1.45 - valid loss: 2.16, valid WER: 25.25, valid CER: 18.33, valid CS-WER: 33.93, valid N-WER: 25.74, valid training_stage: 1
+epoch: 8, lr: 6.98e-05 - train loss: 1.44 - valid loss: 2.16, valid WER: 24.71, valid CER: 18.00, valid CS-WER: 33.23, valid N-WER: 25.03, valid training_stage: 1
+epoch: 9, lr: 5.79e-05 - train loss: 1.43 - valid loss: 2.18, valid WER: 24.64, valid CER: 17.96, valid CS-WER: 32.98, valid N-WER: 25.04, valid training_stage: 2
+epoch: 10, lr: 4.80e-05 - train loss: 1.43 - valid loss: 2.18, valid WER: 24.70, valid CER: 18.03, valid CS-WER: 33.02, valid N-WER: 25.09, valid training_stage: 2
+epoch: 11, lr: 3.98e-05 - train loss: 1.43 - valid loss: 2.19, valid WER: 24.42, valid CER: 17.83, valid CS-WER: 32.43, valid N-WER: 24.80, valid training_stage: 2
+epoch: 12, lr: 3.30e-05 - train loss: 1.42 - valid loss: 2.21, valid WER: 24.10, valid CER: 17.53, valid CS-WER: 32.10, valid N-WER: 24.50, valid training_stage: 2
+epoch: 13, lr: 2.74e-05 - train loss: 1.42 - valid loss: 2.22, valid WER: 24.12, valid CER: 17.71, valid CS-WER: 31.62, valid N-WER: 24.60, valid training_stage: 2
+epoch: 14, lr: 2.27e-05 - train loss: 1.42 - valid loss: 2.24, valid WER: 24.33, valid CER: 17.85, valid CS-WER: 32.40, valid N-WER: 24.67, valid training_stage: 2
+epoch: 15, lr: 1.89e-05 - train loss: 1.42 - valid loss: 2.26, valid WER: 23.90, valid CER: 17.56, valid CS-WER: 32.50, valid N-WER: 24.19, valid training_stage: 2
+epoch: 16, lr: 1.56e-05 - train loss: 1.42 - valid loss: 2.27, valid WER: 24.03, valid CER: 17.70, valid CS-WER: 32.61, valid N-WER: 24.23, valid training_stage: 2
+epoch: 17, lr: 1.30e-05 - train loss: 1.42 - valid loss: 2.28, valid WER: 23.88, valid CER: 17.48, valid CS-WER: 32.61, valid N-WER: 24.10, valid training_stage: 2
+Epoch loaded: 17 - test loss: 2.28, test WER: 23.56, test CER: 17.32, test CS-WER: 33.01, test N-WER: 23.93, test training_stage: 2

@@ -155,10 +155,14 @@ class DSP_Whisper(nn.Module):
         lora_alpha=32.0,
         dropout=0.1,
         language="vi",
+        bilingual_prompt=False,
+        use_ctc=False,
     ):
         super().__init__()
         self.warmup = True
         self.input_size = input_size
+        self.bilingual_prompt = bilingual_prompt
+        self.use_ctc = use_ctc
 
         # 1. Load Whisper backbone
         self.whisper = Whisper(
@@ -230,6 +234,22 @@ class DSP_Whisper(nn.Module):
             dropout=dropout,
         )
 
+        # 8. [EXP-A] Bilingual prompt: cache <|en|> token ID
+        if bilingual_prompt:
+            self._en_token = self.whisper.tokenizer.convert_tokens_to_ids("<|en|>")
+        else:
+            self._en_token = None
+
+        # 9. [EXP-C] CTC auxiliary head on encoder output
+        if use_ctc:
+            tok = self.whisper.tokenizer
+            vocab_size = len(tok.get_vocab()) if hasattr(tok, 'get_vocab') else 51865
+            self.ctc_head = nn.Linear(input_size, vocab_size)
+            nn.init.normal_(self.ctc_head.weight, std=0.01)
+            nn.init.zeros_(self.ctc_head.bias)
+        else:
+            self.ctc_head = None
+
     @property
     def model(self):
         return self.whisper.model
@@ -294,10 +314,15 @@ class DSP_Whisper(nn.Module):
         -------
         logits : torch.Tensor [batch, seq_len, vocab_size]
         lid_logits : torch.Tensor [batch, 1500, num_languages]
+        cross_attn : torch.Tensor [batch, heads, tgt_len, src_len]
+        ctc_logits : torch.Tensor or None [batch, 1500, vocab] (if use_ctc)
         """
         # 1. Whisper encoder (with LoRA shared adaptation)
         mel = self.whisper._get_mel(wav)
         encoder_out = self.whisper.forward_encoder(mel)  # [B, 1500, 768]
+
+        # 1b. [EXP-C] CTC logits on raw encoder output (before LAA)
+        ctc_logits = self.ctc_head(encoder_out) if self.ctc_head is not None else None
 
         # 2. CausalPromptGenerator → LID probabilities
         gru_input = encoder_out.detach() if self.warmup else encoder_out
@@ -332,7 +357,7 @@ class DSP_Whisper(nn.Module):
         # Lấy cross-attention cho LAL [B, num_heads, tgt_len, src_len]
         cross_attn = output_states.cross_attentions[-1]
 
-        return logits, lid_logits, cross_attn
+        return logits, lid_logits, cross_attn, ctc_logits, (vi_adapt, en_adapt)
 
     def get_encoder_out(self, wav):
         """Get encoder output + LAA adaptation (for beam search)."""

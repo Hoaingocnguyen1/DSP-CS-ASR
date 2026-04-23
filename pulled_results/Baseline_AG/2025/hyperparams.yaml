@@ -1,0 +1,102 @@
+# Generated 2026-04-20 from:
+# /workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.yaml
+# yamllint disable
+# AG Baseline (Aditya et al., ICASSP 2024)
+# ==========================================
+# Re-implementation: Attention-Guided Adaptation
+# Whisper + LoRA + Decoder Adapters + AG Loss (2-stage)
+# Bilingual prompt: <|vi|><|en|>
+
+seed: 2025
+__set_seed: !apply:speechbrain.utils.seed_everything [2025]
+
+# Folder paths
+data_folder: /workspace/DSP-CS-ASR/data/vimedcss
+output_folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025
+save_folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save
+train_log: /workspace/DSP-CS-ASR/results/Baseline_AG/2025/train_log.txt
+
+# Data
+train_annotation: /workspace/DSP-CS-ASR/data/vimedcss/train.json
+valid_annotation: /workspace/DSP-CS-ASR/data/vimedcss/valid.json
+test_annotation: /workspace/DSP-CS-ASR/data/vimedcss/test.json
+
+# AG specific
+stage1_epochs: 8           # Stage 1: CE only (encoder adapter)
+ag_gamma: 0.01             # γ for AG loss
+ag_soft_label: 0.6         # c value for soft LID labels
+label_smoothing: 0.1
+
+# Training
+number_of_epochs: 0
+early_stop_patience: 5
+batch_size: 8
+lr_backbone: 0.0003
+lr_decoder: 0.00015
+weight_decay: 0.0001
+num_workers: 16
+min_decode_ratio: 0.0
+max_decode_ratio: 1.0
+valid_beam_size: 4
+test_beam_size: 8
+
+# Dataloader
+train_dataloader_opts:
+  batch_size: 8
+  num_workers: 16
+  shuffle: true
+
+valid_dataloader_opts:
+  batch_size: 8
+  num_workers: 16
+
+blank_index: 0
+
+epoch_counter: &id002 !new:speechbrain.utils.epoch_loop.EpochCounter
+  limit: 0
+
+# Model
+dsp_model: &id001 !new:ag_whisper.AG_Whisper
+
+  source: openai/whisper-small
+  save_path: pretrained_models
+  input_size: 768
+  adapter_size: 192
+  lora_rank: 16
+  lora_alpha: 32.0
+  dropout: 0.1
+  language: vi
+  num_decoder_layers: 12
+
+# Logger
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+  save_file: /workspace/DSP-CS-ASR/results/Baseline_AG/2025/train_log.txt
+
+lr_annealing: &id003 !new:speechbrain.nnet.schedulers.WarmAndExpDecayLRSchedule
+  lr: 1.0
+  n_warmup_steps: 300
+  total_steps: 18500
+  decay_factor: 0.1
+
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+
+valid_search: !new:speechbrain.decoders.seq2seq.S2SWhisperBeamSearcher
+  module: [*id001]
+  min_decode_ratio: 0.0
+  max_decode_ratio: 1.0
+  beam_size: 4
+
+test_search: !new:speechbrain.decoders.seq2seq.S2SWhisperBeamSearcher
+  module: [*id001]
+  min_decode_ratio: 0.0
+  max_decode_ratio: 1.0
+  beam_size: 8
+
+modules:
+  dsp_model: *id001
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+  checkpoints_dir: /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save
+  recoverables:
+    dsp_model: *id001
+    epoch_counter: *id002
+    lr_annealing: *id003

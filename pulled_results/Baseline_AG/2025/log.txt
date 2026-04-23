@@ -1,0 +1,1955 @@
+2026-04-20 08:21:36,597 - speechbrain.utils.quirks - INFO - Applied quirks (see `speechbrain.utils.quirks`): [allow_tf32, disable_jit_profiling]
+2026-04-20 08:21:36,597 - speechbrain.utils.quirks - INFO - Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-20 08:21:36,597 - speechbrain.core - INFO - Beginning experiment!
+2026-04-20 08:21:36,597 - speechbrain.core - INFO - Experiment folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025
+2026-04-20 08:21:36,886 - speechbrain.utils.superpowers - DEBUG - annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+asttokens==3.0.1
+certifi==2026.2.25
+cffi==2.0.0
+cfgv==3.5.0
+charset-normalizer==3.4.6
+click==8.3.1
+codespell==2.4.2
+comm==0.2.3
+cuda-bindings==13.0.3
+cuda-pathfinder==1.4.3
+debugpy==1.8.20
+decorator==5.2.1
+distlib==0.4.0
+distro==1.9.0
+executing==2.2.1
+filelock==3.25.2
+fsspec==2026.2.0
+h11==0.16.0
+hf-xet==1.4.2
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==1.7.1
+HyperPyYAML==1.2.3
+identify==2.6.19
+idna==3.11
+iniconfig==2.3.0
+ipykernel==7.2.0
+ipython==9.11.0
+ipython_pygments_lexers==1.1.1
+ipywidgets==8.1.8
+jedi==0.19.2
+Jinja2==3.1.6
+jiter==0.14.0
+joblib==1.5.3
+jupyter_client==8.8.0
+jupyter_core==5.9.1
+jupyterlab_widgets==3.0.16
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+matplotlib-inline==0.2.1
+mdurl==0.1.2
+mpmath==1.3.0
+nest-asyncio==1.6.0
+networkx==3.6.1
+nodeenv==1.10.0
+numpy==2.4.3
+nvidia-cublas==13.1.0.3
+nvidia-cuda-cupti==13.0.85
+nvidia-cuda-nvrtc==13.0.88
+nvidia-cuda-runtime==13.0.96
+nvidia-cudnn-cu13==9.15.1.9
+nvidia-cufft==12.0.0.61
+nvidia-cufile==1.15.1.6
+nvidia-curand==10.4.0.35
+nvidia-cusolver==12.0.4.66
+nvidia-cusparse==12.6.3.3
+nvidia-cusparselt-cu13==0.8.0
+nvidia-nccl-cu13==2.28.9
+nvidia-nvjitlink==13.0.88
+nvidia-nvshmem-cu13==3.4.5
+nvidia-nvtx==13.0.85
+openai==2.32.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1769093650/work
+pandas==3.0.2
+parso==0.8.6
+pathspec==1.0.4
+pexpect==4.9.0
+pillow==12.1.1
+platformdirs==4.9.4
+pluggy==1.6.0
+pre_commit==4.5.1
+prompt_toolkit==3.0.52
+psutil==7.2.2
+ptyprocess==0.7.0
+pure_eval==0.2.3
+pycparser==3.0
+pydantic==2.13.2
+pydantic_core==2.46.2
+Pygments==2.19.2
+pytest==7.4.0
+python-dateutil==2.9.0.post0
+python-discovery==1.2.2
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pyzmq==27.1.0
+regex==2026.4.4
+requests==2.32.5
+rich==14.3.3
+ruamel.yaml==0.18.17
+ruamel.yaml.clib==0.2.15
+ruff==0.12.4
+safetensors==0.7.0
+scipy==1.17.1
+sentencepiece==0.2.1
+setuptools==82.0.1
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+soundfile==0.13.1
+stack-data==0.6.3
+sympy==1.14.0
+tokenizers==0.22.2
+torch==2.10.0+cu130
+torchaudio==2.10.0+cu130
+torchcodec==0.10.0+cu130
+torchdata==0.10.0
+torchtext==0.6.0
+torchvision==0.25.0+cu130
+tornado==6.5.5
+tqdm==4.67.3
+traitlets==5.14.3
+transformers==5.5.4
+triton==3.6.0
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+virtualenv==21.2.4
+wcwidth==0.6.0
+wheel==0.46.3
+widgetsnbextension==4.0.15
+yamllint==1.35.1
+
+
+2026-04-20 08:21:37,342 - speechbrain.core - INFO - Gradscaler enabled: `False`
+2026-04-20 08:21:37,343 - speechbrain.core - INFO - Using training precision: `--precision=fp32`
+2026-04-20 08:21:37,343 - speechbrain.core - INFO - Using evaluation precision: `--eval_precision=fp32`
+2026-04-20 08:21:37,344 - speechbrain.core - INFO - AG_ASR Model Statistics:
+* Total Number of Trainable Parameters: 158.4M
+* Total Number of Parameters: 246.5M
+* Trainable Parameters represent 64.2509% of the total size.
+2026-04-20 08:21:37,346 - speechbrain.utils.checkpoints - INFO - Would load a checkpoint here, but none found yet.
+2026-04-20 08:21:37,347 - speechbrain.utils.epoch_loop - INFO - Going into epoch 1
+2026-04-20 08:21:37,347 - __main__ - INFO - [AG] Stage 1: Decoder adapters FROZEN, training encoder only
+2026-04-20 08:21:37,371 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,373 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,386 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,387 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,400 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,402 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,414 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,416 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,429 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,430 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,443 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,445 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,458 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,459 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,471 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,472 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,486 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,487 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,501 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,502 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,514 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,516 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,529 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,530 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,543 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,544 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,558 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,559 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,572 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,574 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,589 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,590 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:21:37,603 - speechbrain.core - ERROR - Exception:
+Traceback (most recent call last):
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 515, in <module>
+    asr_brain.fit(
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1217, in fit
+    self._fit_train(train_set=train_set, epoch=epoch, enable=enable)
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1036, in _fit_train
+    for batch in t:
+                 ^
+  File "/venv/main/lib/python3.12/site-packages/tqdm/std.py", line 1181, in __iter__
+    for obj in iterable:
+               ^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 741, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 1548, in _next_data
+    return self._process_data(data, worker_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 1586, in _process_data
+    data.reraise()
+  File "/venv/main/lib/python3.12/site-packages/torch/_utils.py", line 775, in reraise
+    raise exception
+RuntimeError: Caught RuntimeError in DataLoader worker process 0.
+Original Traceback (most recent call last):
+  File "/workspace/DSP-CS-ASR/speechbrain/dataio/audio_io.py", line 124, in load
+    audio_np, sample_rate = sf.read(
+                            ^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/soundfile.py", line 305, in read
+    with SoundFile(file, 'r', samplerate, channels,
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/soundfile.py", line 690, in __init__
+    self._file = self._open(file, mode_int, closefd)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/soundfile.py", line 1265, in _open
+    raise LibsndfileError(err, prefix="Error opening {0!r}: ".format(self.name))
+soundfile.LibsndfileError: Error opening '/home/hnn/Documents/kltn/DSP-CS-ASR/data/vimedcss/wavs/train/vimedcss_train_Med_CS-53_2-12.wav': System error.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/venv/main/lib/python3.12/site-packages/torch/utils/data/_utils/worker.py", line 358, in _worker_loop
+    data = fetcher.fetch(index)  # type: ignore[possibly-undefined]
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/utils/data/_utils/fetch.py", line 54, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+            ~~~~~~~~~~~~^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/dataio/dataset.py", line 186, in __getitem__
+    return self.pipeline.compute_outputs({"id": data_id, **data_point})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/utils/data_pipeline.py", line 633, in compute_outputs
+    return self._compute(data, self._exec_order, self.output_mapping)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/utils/data_pipeline.py", line 665, in _compute
+    values = item(*args)  # Call the DynamicItem to produce output
+             ^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/utils/data_pipeline.py", line 77, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 455, in audio_pipeline
+    sig = sb.dataio.dataio.read_audio(wav)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/dataio/dataio.py", line 290, in read_audio
+    audio, _ = audio_io.load(waveforms_obj)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/dataio/audio_io.py", line 142, in load
+    raise RuntimeError(f"Failed to load audio from {path}: {e}") from e
+RuntimeError: Failed to load audio from /home/hnn/Documents/kltn/DSP-CS-ASR/data/vimedcss/wavs/train/vimedcss_train_Med_CS-53_2-12.wav: Error opening '/home/hnn/Documents/kltn/DSP-CS-ASR/data/vimedcss/wavs/train/vimedcss_train_Med_CS-53_2-12.wav': System error.
+
+2026-04-20 08:21:37,607 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:21:37,607 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:20,727 - speechbrain.utils.quirks - INFO - Applied quirks (see `speechbrain.utils.quirks`): [allow_tf32, disable_jit_profiling]
+2026-04-20 08:23:20,727 - speechbrain.utils.quirks - INFO - Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-20 08:23:20,727 - speechbrain.core - INFO - Beginning experiment!
+2026-04-20 08:23:20,727 - speechbrain.core - INFO - Experiment folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025
+2026-04-20 08:23:21,006 - speechbrain.utils.superpowers - DEBUG - annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+asttokens==3.0.1
+certifi==2026.2.25
+cffi==2.0.0
+cfgv==3.5.0
+charset-normalizer==3.4.6
+click==8.3.1
+codespell==2.4.2
+comm==0.2.3
+cuda-bindings==13.0.3
+cuda-pathfinder==1.4.3
+debugpy==1.8.20
+decorator==5.2.1
+distlib==0.4.0
+distro==1.9.0
+executing==2.2.1
+filelock==3.25.2
+fsspec==2026.2.0
+h11==0.16.0
+hf-xet==1.4.2
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==1.7.1
+HyperPyYAML==1.2.3
+identify==2.6.19
+idna==3.11
+iniconfig==2.3.0
+ipykernel==7.2.0
+ipython==9.11.0
+ipython_pygments_lexers==1.1.1
+ipywidgets==8.1.8
+jedi==0.19.2
+Jinja2==3.1.6
+jiter==0.14.0
+joblib==1.5.3
+jupyter_client==8.8.0
+jupyter_core==5.9.1
+jupyterlab_widgets==3.0.16
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+matplotlib-inline==0.2.1
+mdurl==0.1.2
+mpmath==1.3.0
+nest-asyncio==1.6.0
+networkx==3.6.1
+nodeenv==1.10.0
+numpy==2.4.3
+nvidia-cublas==13.1.0.3
+nvidia-cuda-cupti==13.0.85
+nvidia-cuda-nvrtc==13.0.88
+nvidia-cuda-runtime==13.0.96
+nvidia-cudnn-cu13==9.15.1.9
+nvidia-cufft==12.0.0.61
+nvidia-cufile==1.15.1.6
+nvidia-curand==10.4.0.35
+nvidia-cusolver==12.0.4.66
+nvidia-cusparse==12.6.3.3
+nvidia-cusparselt-cu13==0.8.0
+nvidia-nccl-cu13==2.28.9
+nvidia-nvjitlink==13.0.88
+nvidia-nvshmem-cu13==3.4.5
+nvidia-nvtx==13.0.85
+openai==2.32.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1769093650/work
+pandas==3.0.2
+parso==0.8.6
+pathspec==1.0.4
+pexpect==4.9.0
+pillow==12.1.1
+platformdirs==4.9.4
+pluggy==1.6.0
+pre_commit==4.5.1
+prompt_toolkit==3.0.52
+psutil==7.2.2
+ptyprocess==0.7.0
+pure_eval==0.2.3
+pycparser==3.0
+pydantic==2.13.2
+pydantic_core==2.46.2
+Pygments==2.19.2
+pytest==7.4.0
+python-dateutil==2.9.0.post0
+python-discovery==1.2.2
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pyzmq==27.1.0
+regex==2026.4.4
+requests==2.32.5
+rich==14.3.3
+ruamel.yaml==0.18.17
+ruamel.yaml.clib==0.2.15
+ruff==0.12.4
+safetensors==0.7.0
+scipy==1.17.1
+sentencepiece==0.2.1
+setuptools==82.0.1
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+soundfile==0.13.1
+stack-data==0.6.3
+sympy==1.14.0
+tokenizers==0.22.2
+torch==2.10.0+cu130
+torchaudio==2.10.0+cu130
+torchcodec==0.10.0+cu130
+torchdata==0.10.0
+torchtext==0.6.0
+torchvision==0.25.0+cu130
+tornado==6.5.5
+tqdm==4.67.3
+traitlets==5.14.3
+transformers==5.5.4
+triton==3.6.0
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+virtualenv==21.2.4
+wcwidth==0.6.0
+wheel==0.46.3
+widgetsnbextension==4.0.15
+yamllint==1.35.1
+
+
+2026-04-20 08:23:21,511 - speechbrain.core - INFO - Gradscaler enabled: `False`
+2026-04-20 08:23:21,511 - speechbrain.core - INFO - Using training precision: `--precision=fp32`
+2026-04-20 08:23:21,511 - speechbrain.core - INFO - Using evaluation precision: `--eval_precision=fp32`
+2026-04-20 08:23:21,513 - speechbrain.core - INFO - AG_ASR Model Statistics:
+* Total Number of Trainable Parameters: 158.4M
+* Total Number of Parameters: 246.5M
+* Trainable Parameters represent 64.2509% of the total size.
+2026-04-20 08:23:21,515 - speechbrain.utils.checkpoints - INFO - Would load a checkpoint here, but none found yet.
+2026-04-20 08:23:21,515 - speechbrain.utils.epoch_loop - INFO - Going into epoch 1
+2026-04-20 08:23:21,515 - __main__ - INFO - [AG] Stage 1: Decoder adapters FROZEN, training encoder only
+2026-04-20 08:23:21,534 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,535 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,546 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,547 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,558 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,559 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,570 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,571 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,583 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,583 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,595 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,596 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,608 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,608 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,620 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,621 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,633 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,633 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,646 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,647 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,658 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,659 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,672 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,673 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,686 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,687 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,700 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,701 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,713 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,714 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:21,726 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:21,727 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:23:23,623 - speechbrain.core - ERROR - Exception:
+Traceback (most recent call last):
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 515, in <module>
+    asr_brain.fit(
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1217, in fit
+    self._fit_train(train_set=train_set, epoch=epoch, enable=enable)
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1042, in _fit_train
+    loss = self.fit_batch(batch)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 841, in fit_batch
+    outputs = self.compute_forward(batch, sb.Stage.TRAIN)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 148, in compute_forward
+    logits, self_attns = dsp(wavs, bos_tokens)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/ag_whisper.py", line 239, in forward
+    output = self.whisper.model.decoder(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/utils/generic.py", line 952, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/utils/output_capturing.py", line 248, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 780, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/modeling_layers.py", line 93, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1843, in inner
+    hook_result = hook(self, args, result)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/ag_whisper.py", line 164, in hook
+    return (h,) + output[1:]
+           ~~~~~^~~~~~~~~~~~
+TypeError: can only concatenate tuple (not "Tensor") to tuple
+2026-04-20 08:23:23,627 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:23:23,627 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:28,666 - speechbrain.utils.quirks - INFO - Applied quirks (see `speechbrain.utils.quirks`): [allow_tf32, disable_jit_profiling]
+2026-04-20 08:25:28,667 - speechbrain.utils.quirks - INFO - Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-20 08:25:28,667 - speechbrain.core - INFO - Beginning experiment!
+2026-04-20 08:25:28,667 - speechbrain.core - INFO - Experiment folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025
+2026-04-20 08:25:28,942 - speechbrain.utils.superpowers - DEBUG - annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+asttokens==3.0.1
+certifi==2026.2.25
+cffi==2.0.0
+cfgv==3.5.0
+charset-normalizer==3.4.6
+click==8.3.1
+codespell==2.4.2
+comm==0.2.3
+cuda-bindings==13.0.3
+cuda-pathfinder==1.4.3
+debugpy==1.8.20
+decorator==5.2.1
+distlib==0.4.0
+distro==1.9.0
+executing==2.2.1
+filelock==3.25.2
+fsspec==2026.2.0
+h11==0.16.0
+hf-xet==1.4.2
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==1.7.1
+HyperPyYAML==1.2.3
+identify==2.6.19
+idna==3.11
+iniconfig==2.3.0
+ipykernel==7.2.0
+ipython==9.11.0
+ipython_pygments_lexers==1.1.1
+ipywidgets==8.1.8
+jedi==0.19.2
+Jinja2==3.1.6
+jiter==0.14.0
+joblib==1.5.3
+jupyter_client==8.8.0
+jupyter_core==5.9.1
+jupyterlab_widgets==3.0.16
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+matplotlib-inline==0.2.1
+mdurl==0.1.2
+mpmath==1.3.0
+nest-asyncio==1.6.0
+networkx==3.6.1
+nodeenv==1.10.0
+numpy==2.4.3
+nvidia-cublas==13.1.0.3
+nvidia-cuda-cupti==13.0.85
+nvidia-cuda-nvrtc==13.0.88
+nvidia-cuda-runtime==13.0.96
+nvidia-cudnn-cu13==9.15.1.9
+nvidia-cufft==12.0.0.61
+nvidia-cufile==1.15.1.6
+nvidia-curand==10.4.0.35
+nvidia-cusolver==12.0.4.66
+nvidia-cusparse==12.6.3.3
+nvidia-cusparselt-cu13==0.8.0
+nvidia-nccl-cu13==2.28.9
+nvidia-nvjitlink==13.0.88
+nvidia-nvshmem-cu13==3.4.5
+nvidia-nvtx==13.0.85
+openai==2.32.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1769093650/work
+pandas==3.0.2
+parso==0.8.6
+pathspec==1.0.4
+pexpect==4.9.0
+pillow==12.1.1
+platformdirs==4.9.4
+pluggy==1.6.0
+pre_commit==4.5.1
+prompt_toolkit==3.0.52
+psutil==7.2.2
+ptyprocess==0.7.0
+pure_eval==0.2.3
+pycparser==3.0
+pydantic==2.13.2
+pydantic_core==2.46.2
+Pygments==2.19.2
+pytest==7.4.0
+python-dateutil==2.9.0.post0
+python-discovery==1.2.2
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pyzmq==27.1.0
+regex==2026.4.4
+requests==2.32.5
+rich==14.3.3
+ruamel.yaml==0.18.17
+ruamel.yaml.clib==0.2.15
+ruff==0.12.4
+safetensors==0.7.0
+scipy==1.17.1
+sentencepiece==0.2.1
+setuptools==82.0.1
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+soundfile==0.13.1
+stack-data==0.6.3
+sympy==1.14.0
+tokenizers==0.22.2
+torch==2.10.0+cu130
+torchaudio==2.10.0+cu130
+torchcodec==0.10.0+cu130
+torchdata==0.10.0
+torchtext==0.6.0
+torchvision==0.25.0+cu130
+tornado==6.5.5
+tqdm==4.67.3
+traitlets==5.14.3
+transformers==5.5.4
+triton==3.6.0
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+virtualenv==21.2.4
+wcwidth==0.6.0
+wheel==0.46.3
+widgetsnbextension==4.0.15
+yamllint==1.35.1
+
+
+2026-04-20 08:25:29,410 - speechbrain.core - INFO - Gradscaler enabled: `False`
+2026-04-20 08:25:29,410 - speechbrain.core - INFO - Using training precision: `--precision=fp32`
+2026-04-20 08:25:29,410 - speechbrain.core - INFO - Using evaluation precision: `--eval_precision=fp32`
+2026-04-20 08:25:29,412 - speechbrain.core - INFO - AG_ASR Model Statistics:
+* Total Number of Trainable Parameters: 158.4M
+* Total Number of Parameters: 246.5M
+* Trainable Parameters represent 64.2509% of the total size.
+2026-04-20 08:25:29,414 - speechbrain.utils.checkpoints - INFO - Would load a checkpoint here, but none found yet.
+2026-04-20 08:25:29,414 - speechbrain.utils.epoch_loop - INFO - Going into epoch 1
+2026-04-20 08:25:29,414 - __main__ - INFO - [AG] Stage 1: Decoder adapters FROZEN, training encoder only
+2026-04-20 08:25:29,436 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,437 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,450 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,451 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,464 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,465 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,478 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,479 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,492 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,493 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,506 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,507 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,520 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,521 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,535 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,535 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,550 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,550 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,565 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,566 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,580 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,581 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,598 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,599 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,612 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,613 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,627 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,628 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,646 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,647 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:29,662 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:25:29,663 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:25:30,386 - __main__ - INFO - [AG Baseline] Trainable: 154,798,848 / 246,483,456 (62.80%)
+2026-04-20 08:25:30,445 - __main__ - INFO - [AG Stage 1 (CE only)] seq_loss=5.5408, total=5.5408
+2026-04-20 08:31:26,006 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,007 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,032 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,033 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,057 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,058 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,083 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,084 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,108 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,109 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,133 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,134 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,158 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,159 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,182 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,183 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,207 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,208 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,231 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,231 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,255 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,257 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,279 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,280 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,304 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,305 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,327 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,328 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,352 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,353 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,376 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,377 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:31:26,848 - speechbrain.core - ERROR - Exception:
+Traceback (most recent call last):
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 515, in <module>
+    asr_brain.fit(
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1218, in fit
+    self._fit_valid(valid_set=valid_set, epoch=epoch, enable=enable)
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1120, in _fit_valid
+    loss = self.evaluate_batch(batch, stage=Stage.VALID)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1006, in evaluate_batch
+    out = self.compute_forward(batch, stage=stage)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 168, in compute_forward
+    predicted_tokens, _, _, _ = search(encoder_out.detach(), wav_lens)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 1681, in forward
+    ) = self.search_step(
+        ^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 1542, in search_step
+    (log_probs, memory, attn) = self._attn_weight_step(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 917, in _attn_weight_step
+    log_probs, memory, attn = self.forward_step(
+                              ^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 2159, in forward_step
+    logits, attn, kv = self.model.forward_decoder(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/ag_whisper.py", line 271, in forward_decoder
+    return self.whisper.forward_decoder(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/integrations/huggingface/whisper.py", line 402, in forward_decoder
+    output_states = self.model.decoder(
+                    ^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/utils/generic.py", line 952, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/utils/output_capturing.py", line 248, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 780, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/modeling_layers.py", line 93, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1830, in inner
+    result = forward_call(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 486, in forward
+    hidden_states, _ = self.encoder_attn(
+                       ^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1830, in inner
+    result = forward_call(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 323, in forward
+    if is_cross_attention and past_key_values and is_updated:
+                                                  ^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'is_updated' where it is not associated with a value
+2026-04-20 08:31:26,852 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:31:26,853 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,011 - speechbrain.utils.quirks - INFO - Applied quirks (see `speechbrain.utils.quirks`): [allow_tf32, disable_jit_profiling]
+2026-04-20 08:35:38,012 - speechbrain.utils.quirks - INFO - Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-20 08:35:38,012 - speechbrain.core - INFO - Beginning experiment!
+2026-04-20 08:35:38,012 - speechbrain.core - INFO - Experiment folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025
+2026-04-20 08:35:38,287 - speechbrain.utils.superpowers - DEBUG - annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+asttokens==3.0.1
+certifi==2026.2.25
+cffi==2.0.0
+cfgv==3.5.0
+charset-normalizer==3.4.6
+click==8.3.1
+codespell==2.4.2
+comm==0.2.3
+cuda-bindings==13.0.3
+cuda-pathfinder==1.4.3
+debugpy==1.8.20
+decorator==5.2.1
+distlib==0.4.0
+distro==1.9.0
+executing==2.2.1
+filelock==3.25.2
+fsspec==2026.2.0
+h11==0.16.0
+hf-xet==1.4.2
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==1.7.1
+HyperPyYAML==1.2.3
+identify==2.6.19
+idna==3.11
+iniconfig==2.3.0
+ipykernel==7.2.0
+ipython==9.11.0
+ipython_pygments_lexers==1.1.1
+ipywidgets==8.1.8
+jedi==0.19.2
+Jinja2==3.1.6
+jiter==0.14.0
+joblib==1.5.3
+jupyter_client==8.8.0
+jupyter_core==5.9.1
+jupyterlab_widgets==3.0.16
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+matplotlib-inline==0.2.1
+mdurl==0.1.2
+mpmath==1.3.0
+nest-asyncio==1.6.0
+networkx==3.6.1
+nodeenv==1.10.0
+numpy==2.4.3
+nvidia-cublas==13.1.0.3
+nvidia-cuda-cupti==13.0.85
+nvidia-cuda-nvrtc==13.0.88
+nvidia-cuda-runtime==13.0.96
+nvidia-cudnn-cu13==9.15.1.9
+nvidia-cufft==12.0.0.61
+nvidia-cufile==1.15.1.6
+nvidia-curand==10.4.0.35
+nvidia-cusolver==12.0.4.66
+nvidia-cusparse==12.6.3.3
+nvidia-cusparselt-cu13==0.8.0
+nvidia-nccl-cu13==2.28.9
+nvidia-nvjitlink==13.0.88
+nvidia-nvshmem-cu13==3.4.5
+nvidia-nvtx==13.0.85
+openai==2.32.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1769093650/work
+pandas==3.0.2
+parso==0.8.6
+pathspec==1.0.4
+pexpect==4.9.0
+pillow==12.1.1
+platformdirs==4.9.4
+pluggy==1.6.0
+pre_commit==4.5.1
+prompt_toolkit==3.0.52
+psutil==7.2.2
+ptyprocess==0.7.0
+pure_eval==0.2.3
+pycparser==3.0
+pydantic==2.13.2
+pydantic_core==2.46.2
+Pygments==2.19.2
+pytest==7.4.0
+python-dateutil==2.9.0.post0
+python-discovery==1.2.2
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pyzmq==27.1.0
+regex==2026.4.4
+requests==2.32.5
+rich==14.3.3
+ruamel.yaml==0.18.17
+ruamel.yaml.clib==0.2.15
+ruff==0.12.4
+safetensors==0.7.0
+scipy==1.17.1
+sentencepiece==0.2.1
+setuptools==82.0.1
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+soundfile==0.13.1
+stack-data==0.6.3
+sympy==1.14.0
+tokenizers==0.22.2
+torch==2.10.0+cu130
+torchaudio==2.10.0+cu130
+torchcodec==0.10.0+cu130
+torchdata==0.10.0
+torchtext==0.6.0
+torchvision==0.25.0+cu130
+tornado==6.5.5
+tqdm==4.67.3
+traitlets==5.14.3
+transformers==5.5.4
+triton==3.6.0
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+virtualenv==21.2.4
+wcwidth==0.6.0
+wheel==0.46.3
+widgetsnbextension==4.0.15
+yamllint==1.35.1
+
+
+2026-04-20 08:35:38,744 - speechbrain.core - INFO - Gradscaler enabled: `False`
+2026-04-20 08:35:38,744 - speechbrain.core - INFO - Using training precision: `--precision=fp32`
+2026-04-20 08:35:38,744 - speechbrain.core - INFO - Using evaluation precision: `--eval_precision=fp32`
+2026-04-20 08:35:38,745 - speechbrain.core - INFO - AG_ASR Model Statistics:
+* Total Number of Trainable Parameters: 158.4M
+* Total Number of Parameters: 246.5M
+* Trainable Parameters represent 64.2509% of the total size.
+2026-04-20 08:35:38,747 - speechbrain.utils.checkpoints - INFO - Would load a checkpoint here, but none found yet.
+2026-04-20 08:35:38,747 - speechbrain.utils.epoch_loop - INFO - Going into epoch 1
+2026-04-20 08:35:38,748 - __main__ - INFO - [AG] Stage 1: Decoder adapters FROZEN, training encoder only
+2026-04-20 08:35:38,769 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,770 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,784 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,785 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,798 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,798 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,811 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,812 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,825 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,826 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,839 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,840 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,854 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,855 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,868 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,869 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,883 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,884 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,898 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,899 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,912 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,913 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,926 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,927 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,941 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,942 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,955 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,956 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,970 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,971 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:38,987 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:35:38,988 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:35:39,708 - __main__ - INFO - [AG Baseline] Trainable: 154,798,848 / 246,483,456 (62.80%)
+2026-04-20 08:35:39,755 - __main__ - INFO - [AG Stage 1 (CE only)] seq_loss=5.5408, total=5.5408
+2026-04-20 08:41:35,587 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,588 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,612 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,613 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,636 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,637 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,661 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,662 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,686 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,687 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,710 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,711 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,735 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,736 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,759 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,760 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,784 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,785 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,809 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,810 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,834 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,834 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,858 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,859 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,882 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,883 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,906 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,907 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,930 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,931 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:35,958 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:35,959 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:41:36,368 - speechbrain.core - ERROR - Exception:
+Traceback (most recent call last):
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 515, in <module>
+    asr_brain.fit(
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1218, in fit
+    self._fit_valid(valid_set=valid_set, epoch=epoch, enable=enable)
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1120, in _fit_valid
+    loss = self.evaluate_batch(batch, stage=Stage.VALID)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1006, in evaluate_batch
+    out = self.compute_forward(batch, stage=stage)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 168, in compute_forward
+    predicted_tokens, _, _, _ = search(encoder_out.detach(), wav_lens)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 1681, in forward
+    ) = self.search_step(
+        ^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 1542, in search_step
+    (log_probs, memory, attn) = self._attn_weight_step(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 917, in _attn_weight_step
+    log_probs, memory, attn = self.forward_step(
+                              ^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 2159, in forward_step
+    logits, attn, kv = self.model.forward_decoder(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/ag_whisper.py", line 271, in forward_decoder
+    return self.whisper.forward_decoder(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/integrations/huggingface/whisper.py", line 402, in forward_decoder
+    output_states = self.model.decoder(
+                    ^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/utils/generic.py", line 952, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/utils/output_capturing.py", line 248, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 780, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/modeling_layers.py", line 93, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1830, in inner
+    result = forward_call(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 486, in forward
+    hidden_states, _ = self.encoder_attn(
+                       ^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1830, in inner
+    result = forward_call(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 323, in forward
+    if is_cross_attention and past_key_values and is_updated:
+                                                  ^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'is_updated' where it is not associated with a value
+2026-04-20 08:41:36,372 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:41:36,373 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:52,133 - speechbrain.utils.quirks - INFO - Applied quirks (see `speechbrain.utils.quirks`): [allow_tf32, disable_jit_profiling]
+2026-04-20 08:46:52,133 - speechbrain.utils.quirks - INFO - Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-20 08:46:52,133 - speechbrain.core - INFO - Beginning experiment!
+2026-04-20 08:46:52,133 - speechbrain.core - INFO - Experiment folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025
+2026-04-20 08:46:52,411 - speechbrain.utils.superpowers - DEBUG - annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+asttokens==3.0.1
+certifi==2026.2.25
+cffi==2.0.0
+cfgv==3.5.0
+charset-normalizer==3.4.6
+click==8.3.1
+codespell==2.4.2
+comm==0.2.3
+cuda-bindings==13.0.3
+cuda-pathfinder==1.4.3
+debugpy==1.8.20
+decorator==5.2.1
+distlib==0.4.0
+distro==1.9.0
+executing==2.2.1
+filelock==3.25.2
+fsspec==2026.2.0
+h11==0.16.0
+hf-xet==1.4.2
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==1.7.1
+HyperPyYAML==1.2.3
+identify==2.6.19
+idna==3.11
+iniconfig==2.3.0
+ipykernel==7.2.0
+ipython==9.11.0
+ipython_pygments_lexers==1.1.1
+ipywidgets==8.1.8
+jedi==0.19.2
+Jinja2==3.1.6
+jiter==0.14.0
+joblib==1.5.3
+jupyter_client==8.8.0
+jupyter_core==5.9.1
+jupyterlab_widgets==3.0.16
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+matplotlib-inline==0.2.1
+mdurl==0.1.2
+mpmath==1.3.0
+nest-asyncio==1.6.0
+networkx==3.6.1
+nodeenv==1.10.0
+numpy==2.4.3
+nvidia-cublas==13.1.0.3
+nvidia-cuda-cupti==13.0.85
+nvidia-cuda-nvrtc==13.0.88
+nvidia-cuda-runtime==13.0.96
+nvidia-cudnn-cu13==9.15.1.9
+nvidia-cufft==12.0.0.61
+nvidia-cufile==1.15.1.6
+nvidia-curand==10.4.0.35
+nvidia-cusolver==12.0.4.66
+nvidia-cusparse==12.6.3.3
+nvidia-cusparselt-cu13==0.8.0
+nvidia-nccl-cu13==2.28.9
+nvidia-nvjitlink==13.0.88
+nvidia-nvshmem-cu13==3.4.5
+nvidia-nvtx==13.0.85
+openai==2.32.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1769093650/work
+pandas==3.0.2
+parso==0.8.6
+pathspec==1.0.4
+pexpect==4.9.0
+pillow==12.1.1
+platformdirs==4.9.4
+pluggy==1.6.0
+pre_commit==4.5.1
+prompt_toolkit==3.0.52
+psutil==7.2.2
+ptyprocess==0.7.0
+pure_eval==0.2.3
+pycparser==3.0
+pydantic==2.13.2
+pydantic_core==2.46.2
+Pygments==2.19.2
+pytest==7.4.0
+python-dateutil==2.9.0.post0
+python-discovery==1.2.2
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pyzmq==27.1.0
+regex==2026.4.4
+requests==2.32.5
+rich==14.3.3
+ruamel.yaml==0.18.17
+ruamel.yaml.clib==0.2.15
+ruff==0.12.4
+safetensors==0.7.0
+scipy==1.17.1
+sentencepiece==0.2.1
+setuptools==82.0.1
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+soundfile==0.13.1
+stack-data==0.6.3
+sympy==1.14.0
+tokenizers==0.22.2
+torch==2.10.0+cu130
+torchaudio==2.10.0+cu130
+torchcodec==0.10.0+cu130
+torchdata==0.10.0
+torchtext==0.6.0
+torchvision==0.25.0+cu130
+tornado==6.5.5
+tqdm==4.67.3
+traitlets==5.14.3
+transformers==5.5.4
+triton==3.6.0
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+virtualenv==21.2.4
+wcwidth==0.6.0
+wheel==0.46.3
+widgetsnbextension==4.0.15
+yamllint==1.35.1
+
+
+2026-04-20 08:46:52,870 - speechbrain.core - INFO - Gradscaler enabled: `False`
+2026-04-20 08:46:52,871 - speechbrain.core - INFO - Using training precision: `--precision=fp32`
+2026-04-20 08:46:52,871 - speechbrain.core - INFO - Using evaluation precision: `--eval_precision=fp32`
+2026-04-20 08:46:52,872 - speechbrain.core - INFO - AG_ASR Model Statistics:
+* Total Number of Trainable Parameters: 158.4M
+* Total Number of Parameters: 246.5M
+* Trainable Parameters represent 64.2509% of the total size.
+2026-04-20 08:46:52,874 - speechbrain.utils.checkpoints - INFO - Would load a checkpoint here, but none found yet.
+2026-04-20 08:46:52,874 - speechbrain.utils.epoch_loop - INFO - Going into epoch 1
+2026-04-20 08:46:52,874 - __main__ - INFO - [AG] Stage 1: Decoder adapters FROZEN, training encoder only
+2026-04-20 08:46:52,896 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:52,897 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:52,910 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:52,911 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:52,925 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:52,926 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:52,939 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:52,939 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:52,953 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:52,954 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:52,967 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:52,967 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:52,981 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:52,982 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:52,995 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:52,996 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:53,013 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:53,013 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:53,027 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:53,028 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:53,041 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:53,042 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:53,055 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:53,056 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:53,069 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:53,070 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:53,083 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:53,084 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:53,098 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:53,098 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:53,112 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:46:53,112 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:46:53,977 - __main__ - INFO - [AG Baseline] Trainable: 154,798,848 / 246,483,456 (62.80%)
+2026-04-20 08:46:54,009 - __main__ - INFO - [AG Stage 1 (CE only)] seq_loss=5.5410, total=5.5410
+2026-04-20 08:53:48,912 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:48,912 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:48,938 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:48,939 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:48,964 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:48,965 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:48,990 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:48,991 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,016 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,017 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,042 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,043 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,068 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,069 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,094 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,095 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,120 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,121 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,146 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,147 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,172 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,173 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,198 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,199 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,224 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,225 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,250 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,251 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,276 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,277 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,302 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,303 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:53:49,858 - speechbrain.core - ERROR - Exception:
+Traceback (most recent call last):
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 515, in <module>
+    asr_brain.fit(
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1218, in fit
+    self._fit_valid(valid_set=valid_set, epoch=epoch, enable=enable)
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1120, in _fit_valid
+    loss = self.evaluate_batch(batch, stage=Stage.VALID)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1006, in evaluate_batch
+    out = self.compute_forward(batch, stage=stage)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 168, in compute_forward
+    predicted_tokens, _, _, _ = search(encoder_out.detach(), wav_lens)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 1681, in forward
+    ) = self.search_step(
+        ^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 1542, in search_step
+    (log_probs, memory, attn) = self._attn_weight_step(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 917, in _attn_weight_step
+    log_probs, memory, attn = self.forward_step(
+                              ^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 2159, in forward_step
+    logits, attn, kv = self.model.forward_decoder(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/ag_whisper.py", line 272, in forward_decoder
+    return self.whisper.forward_decoder(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/integrations/huggingface/whisper.py", line 403, in forward_decoder
+    output_states = self.model.decoder(
+                    ^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/utils/generic.py", line 952, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/utils/output_capturing.py", line 248, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 780, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/modeling_layers.py", line 93, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1830, in inner
+    result = forward_call(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 486, in forward
+    hidden_states, _ = self.encoder_attn(
+                       ^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1830, in inner
+    result = forward_call(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 323, in forward
+    if is_cross_attention and past_key_values and is_updated:
+                                                  ^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'is_updated' where it is not associated with a value
+2026-04-20 08:53:49,863 - httpcore.connection - DEBUG - close.started
+2026-04-20 08:53:49,864 - httpcore.connection - DEBUG - close.complete
+2026-04-20 08:58:19,071 - speechbrain.utils.quirks - INFO - Applied quirks (see `speechbrain.utils.quirks`): [allow_tf32, disable_jit_profiling]
+2026-04-20 08:58:19,071 - speechbrain.utils.quirks - INFO - Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-20 08:58:19,071 - speechbrain.core - INFO - Beginning experiment!
+2026-04-20 08:58:19,071 - speechbrain.core - INFO - Experiment folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025
+2026-04-20 08:58:19,344 - speechbrain.utils.superpowers - DEBUG - annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+asttokens==3.0.1
+certifi==2026.2.25
+cffi==2.0.0
+cfgv==3.5.0
+charset-normalizer==3.4.6
+click==8.3.1
+codespell==2.4.2
+comm==0.2.3
+cuda-bindings==13.0.3
+cuda-pathfinder==1.4.3
+debugpy==1.8.20
+decorator==5.2.1
+distlib==0.4.0
+distro==1.9.0
+executing==2.2.1
+filelock==3.25.2
+fsspec==2026.2.0
+h11==0.16.0
+hf-xet==1.4.2
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==0.36.2
+HyperPyYAML==1.2.3
+identify==2.6.19
+idna==3.11
+iniconfig==2.3.0
+ipykernel==7.2.0
+ipython==9.11.0
+ipython_pygments_lexers==1.1.1
+ipywidgets==8.1.8
+jedi==0.19.2
+Jinja2==3.1.6
+jiter==0.14.0
+joblib==1.5.3
+jupyter_client==8.8.0
+jupyter_core==5.9.1
+jupyterlab_widgets==3.0.16
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+matplotlib-inline==0.2.1
+mdurl==0.1.2
+mpmath==1.3.0
+nest-asyncio==1.6.0
+networkx==3.6.1
+nodeenv==1.10.0
+numpy==1.26.4
+nvidia-cublas==13.1.0.3
+nvidia-cuda-cupti==13.0.85
+nvidia-cuda-nvrtc==13.0.88
+nvidia-cuda-runtime==13.0.96
+nvidia-cudnn-cu13==9.15.1.9
+nvidia-cufft==12.0.0.61
+nvidia-cufile==1.15.1.6
+nvidia-curand==10.4.0.35
+nvidia-cusolver==12.0.4.66
+nvidia-cusparse==12.6.3.3
+nvidia-cusparselt-cu13==0.8.0
+nvidia-nccl-cu13==2.28.9
+nvidia-nvjitlink==13.0.88
+nvidia-nvshmem-cu13==3.4.5
+nvidia-nvtx==13.0.85
+openai==2.32.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1769093650/work
+pandas==3.0.2
+parso==0.8.6
+pathspec==1.0.4
+pexpect==4.9.0
+pillow==12.1.1
+platformdirs==4.9.4
+pluggy==1.6.0
+pre_commit==4.5.1
+prompt_toolkit==3.0.52
+psutil==7.2.2
+ptyprocess==0.7.0
+pure_eval==0.2.3
+pycparser==3.0
+pydantic==2.13.2
+pydantic_core==2.46.2
+Pygments==2.19.2
+pytest==7.4.0
+python-dateutil==2.9.0.post0
+python-discovery==1.2.2
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pyzmq==27.1.0
+regex==2026.4.4
+requests==2.32.5
+rich==14.3.3
+ruamel.yaml==0.18.17
+ruamel.yaml.clib==0.2.15
+ruff==0.12.4
+safetensors==0.7.0
+scipy==1.17.1
+sentencepiece==0.2.1
+setuptools==82.0.1
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+soundfile==0.13.1
+stack-data==0.6.3
+sympy==1.14.0
+tokenizers==0.19.1
+torch==2.10.0+cu130
+torchaudio==2.10.0+cu130
+torchcodec==0.10.0+cu130
+torchdata==0.10.0
+torchtext==0.6.0
+torchvision==0.25.0+cu130
+tornado==6.5.5
+tqdm==4.67.3
+traitlets==5.14.3
+transformers==4.42.2
+triton==3.6.0
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+virtualenv==21.2.4
+wcwidth==0.6.0
+wheel==0.46.3
+widgetsnbextension==4.0.15
+yamllint==1.35.1
+
+
+2026-04-20 08:58:19,828 - speechbrain.core - INFO - Gradscaler enabled: `False`
+2026-04-20 08:58:19,828 - speechbrain.core - INFO - Using training precision: `--precision=fp32`
+2026-04-20 08:58:19,828 - speechbrain.core - INFO - Using evaluation precision: `--eval_precision=fp32`
+2026-04-20 08:58:19,830 - speechbrain.core - INFO - AG_ASR Model Statistics:
+* Total Number of Trainable Parameters: 158.4M
+* Total Number of Parameters: 246.5M
+* Trainable Parameters represent 64.2509% of the total size.
+2026-04-20 08:58:19,832 - speechbrain.utils.checkpoints - INFO - Would load a checkpoint here, but none found yet.
+2026-04-20 08:58:19,832 - speechbrain.utils.epoch_loop - INFO - Going into epoch 1
+2026-04-20 08:58:19,832 - __main__ - INFO - [AG] Stage 1: Decoder adapters FROZEN, training encoder only
+2026-04-20 08:58:20,808 - __main__ - INFO - [AG Baseline] Trainable: 154,798,848 / 246,483,456 (62.80%)
+2026-04-20 08:58:20,854 - __main__ - INFO - [AG Stage 1 (CE only)] seq_loss=5.5410, total=5.5410
+2026-04-20 09:13:58,724 - speechbrain.utils.train_logger - INFO - epoch: 1, lr: 2.58e-04 - train loss: 2.61 - valid loss: 2.26, valid WER: 37.19, valid CER: 27.16, valid CS-WER: 50.22, valid N-WER: 37.62, valid training_stage: 1
+2026-04-20 09:14:00,693 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+09-13-58+00
+2026-04-20 09:14:00,696 - speechbrain.utils.epoch_loop - INFO - Going into epoch 2
+2026-04-20 09:27:15,059 - speechbrain.utils.train_logger - INFO - epoch: 2, lr: 2.14e-04 - train loss: 1.98 - valid loss: 2.11, valid WER: 27.74, valid CER: 20.22, valid CS-WER: 38.53, valid N-WER: 27.90, valid training_stage: 1
+2026-04-20 09:27:16,941 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+09-27-15+00
+2026-04-20 09:27:17,114 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+09-13-58+00
+2026-04-20 09:27:17,114 - speechbrain.utils.epoch_loop - INFO - Going into epoch 3
+2026-04-20 09:41:09,391 - speechbrain.utils.train_logger - INFO - epoch: 3, lr: 1.78e-04 - train loss: 1.73 - valid loss: 2.10, valid WER: 26.96, valid CER: 19.48, valid CS-WER: 36.75, valid N-WER: 27.42, valid training_stage: 1
+2026-04-20 09:41:11,550 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+09-41-09+00
+2026-04-20 09:41:11,705 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+09-27-15+00
+2026-04-20 09:41:11,706 - speechbrain.utils.epoch_loop - INFO - Going into epoch 4
+2026-04-20 09:55:41,499 - speechbrain.utils.train_logger - INFO - epoch: 4, lr: 1.48e-04 - train loss: 1.57 - valid loss: 2.14, valid WER: 29.05, valid CER: 21.33, valid CS-WER: 36.28, valid N-WER: 29.89, valid training_stage: 1
+2026-04-20 09:55:43,546 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+09-55-41+00
+2026-04-20 09:55:43,554 - speechbrain.utils.epoch_loop - INFO - Going into epoch 5
+2026-04-20 10:09:44,027 - speechbrain.utils.train_logger - INFO - epoch: 5, lr: 1.22e-04 - train loss: 1.49 - valid loss: 2.16, valid WER: 26.59, valid CER: 19.30, valid CS-WER: 36.39, valid N-WER: 27.07, valid training_stage: 1
+2026-04-20 10:09:45,984 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+10-09-44+00
+2026-04-20 10:09:46,195 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+09-41-09+00
+2026-04-20 10:09:46,389 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+09-55-41+00
+2026-04-20 10:09:46,389 - speechbrain.utils.epoch_loop - INFO - Going into epoch 6
+2026-04-20 10:23:26,801 - speechbrain.utils.train_logger - INFO - epoch: 6, lr: 1.01e-04 - train loss: 1.46 - valid loss: 2.16, valid WER: 25.84, valid CER: 18.76, valid CS-WER: 35.15, valid N-WER: 26.34, valid training_stage: 1
+2026-04-20 10:23:28,879 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+10-23-26+00
+2026-04-20 10:23:29,078 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+10-09-44+00
+2026-04-20 10:23:29,079 - speechbrain.utils.epoch_loop - INFO - Going into epoch 7
+2026-04-20 10:37:10,495 - speechbrain.utils.train_logger - INFO - epoch: 7, lr: 8.42e-05 - train loss: 1.45 - valid loss: 2.16, valid WER: 25.25, valid CER: 18.33, valid CS-WER: 33.93, valid N-WER: 25.74, valid training_stage: 1
+2026-04-20 10:37:12,699 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+10-37-10+00
+2026-04-20 10:37:12,906 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+10-23-26+00
+2026-04-20 10:37:12,907 - speechbrain.utils.epoch_loop - INFO - Going into epoch 8
+2026-04-20 10:50:54,630 - speechbrain.utils.train_logger - INFO - epoch: 8, lr: 6.98e-05 - train loss: 1.44 - valid loss: 2.16, valid WER: 24.71, valid CER: 18.00, valid CS-WER: 33.23, valid N-WER: 25.03, valid training_stage: 1
+2026-04-20 10:50:56,737 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+10-50-54+00
+2026-04-20 10:50:56,941 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+10-37-10+00
+2026-04-20 10:50:56,942 - speechbrain.utils.epoch_loop - INFO - Going into epoch 9
+2026-04-20 10:50:56,942 - __main__ - INFO - [AG] Stage 2: Decoder adapters UNFROZEN, AG Loss active
+2026-04-20 10:50:57,805 - __main__ - INFO - [AG Stage 2] ag_loss=0.077880, gamma=0.01
+2026-04-20 11:05:50,653 - speechbrain.utils.train_logger - INFO - epoch: 9, lr: 5.79e-05 - train loss: 1.43 - valid loss: 2.18, valid WER: 24.64, valid CER: 17.96, valid CS-WER: 32.98, valid N-WER: 25.04, valid training_stage: 2
+2026-04-20 11:05:52,725 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+11-05-50+00
+2026-04-20 11:05:52,932 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+10-50-54+00
+2026-04-20 11:05:52,932 - speechbrain.utils.epoch_loop - INFO - Going into epoch 10
+2026-04-20 11:21:10,056 - speechbrain.utils.train_logger - INFO - epoch: 10, lr: 4.80e-05 - train loss: 1.43 - valid loss: 2.18, valid WER: 24.70, valid CER: 18.03, valid CS-WER: 33.02, valid N-WER: 25.09, valid training_stage: 2
+2026-04-20 11:21:12,193 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+11-21-10+00
+2026-04-20 11:21:12,210 - speechbrain.utils.epoch_loop - INFO - Going into epoch 11
+2026-04-20 11:36:11,283 - speechbrain.utils.train_logger - INFO - epoch: 11, lr: 3.98e-05 - train loss: 1.43 - valid loss: 2.19, valid WER: 24.42, valid CER: 17.83, valid CS-WER: 32.43, valid N-WER: 24.80, valid training_stage: 2
+2026-04-20 11:36:13,274 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+11-36-11+00
+2026-04-20 11:36:13,493 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+11-21-10+00
+2026-04-20 11:36:13,699 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+11-05-50+00
+2026-04-20 11:36:13,700 - speechbrain.utils.epoch_loop - INFO - Going into epoch 12
+2026-04-20 11:51:14,811 - speechbrain.utils.train_logger - INFO - epoch: 12, lr: 3.30e-05 - train loss: 1.42 - valid loss: 2.21, valid WER: 24.10, valid CER: 17.53, valid CS-WER: 32.10, valid N-WER: 24.50, valid training_stage: 2
+2026-04-20 11:51:16,991 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+11-51-14+00
+2026-04-20 11:51:17,207 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+11-36-11+00
+2026-04-20 11:51:17,207 - speechbrain.utils.epoch_loop - INFO - Going into epoch 13
+2026-04-20 12:06:23,483 - speechbrain.utils.train_logger - INFO - epoch: 13, lr: 2.74e-05 - train loss: 1.42 - valid loss: 2.22, valid WER: 24.12, valid CER: 17.71, valid CS-WER: 31.62, valid N-WER: 24.60, valid training_stage: 2
+2026-04-20 12:06:25,595 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+12-06-23+00
+2026-04-20 12:06:25,618 - speechbrain.utils.epoch_loop - INFO - Going into epoch 14
+2026-04-20 12:21:24,485 - speechbrain.utils.train_logger - INFO - epoch: 14, lr: 2.27e-05 - train loss: 1.42 - valid loss: 2.24, valid WER: 24.33, valid CER: 17.85, valid CS-WER: 32.40, valid N-WER: 24.67, valid training_stage: 2
+2026-04-20 12:21:26,536 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+12-21-24+00
+2026-04-20 12:21:26,757 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+12-06-23+00
+2026-04-20 12:21:26,758 - speechbrain.utils.epoch_loop - INFO - Going into epoch 15
+2026-04-20 12:36:19,105 - speechbrain.utils.train_logger - INFO - epoch: 15, lr: 1.89e-05 - train loss: 1.42 - valid loss: 2.26, valid WER: 23.90, valid CER: 17.56, valid CS-WER: 32.50, valid N-WER: 24.19, valid training_stage: 2
+2026-04-20 12:36:21,173 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+12-36-19+00
+2026-04-20 12:36:21,409 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+11-51-14+00
+2026-04-20 12:36:21,606 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+12-21-24+00
+2026-04-20 12:36:21,606 - speechbrain.utils.epoch_loop - INFO - Going into epoch 16
+2026-04-20 12:51:11,263 - speechbrain.utils.train_logger - INFO - epoch: 16, lr: 1.56e-05 - train loss: 1.42 - valid loss: 2.27, valid WER: 24.03, valid CER: 17.70, valid CS-WER: 32.61, valid N-WER: 24.23, valid training_stage: 2
+2026-04-20 12:51:13,372 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+12-51-11+00
+2026-04-20 12:51:13,398 - speechbrain.utils.epoch_loop - INFO - Going into epoch 17
+2026-04-20 13:06:09,650 - speechbrain.utils.train_logger - INFO - epoch: 17, lr: 1.30e-05 - train loss: 1.42 - valid loss: 2.28, valid WER: 23.88, valid CER: 17.48, valid CS-WER: 32.61, valid N-WER: 24.10, valid training_stage: 2
+2026-04-20 13:06:11,758 - speechbrain.utils.checkpoints - INFO - Saved an end-of-epoch checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+13-06-09+00
+2026-04-20 13:06:11,997 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+12-51-11+00
+2026-04-20 13:06:12,205 - speechbrain.utils.checkpoints - INFO - Deleted checkpoint in /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+12-36-19+00
+2026-04-20 13:06:12,206 - speechbrain.utils.epoch_loop - INFO - Going into epoch 18
+2026-04-20 13:06:16,993 - speechbrain.core - ERROR - Exception:
+Traceback (most recent call last):
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 515, in <module>
+    asr_brain.fit(
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1217, in fit
+    self._fit_train(train_set=train_set, epoch=epoch, enable=enable)
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1042, in _fit_train
+    loss = self.fit_batch(batch)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 847, in fit_batch
+    scaled_loss.backward()
+  File "/venv/main/lib/python3.12/site-packages/torch/_tensor.py", line 630, in backward
+    torch.autograd.backward(
+  File "/venv/main/lib/python3.12/site-packages/torch/autograd/__init__.py", line 364, in backward
+    _engine_run_backward(
+  File "/venv/main/lib/python3.12/site-packages/torch/autograd/graph.py", line 865, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+2026-04-20 13:07:02,472 - speechbrain.utils.quirks - INFO - Applied quirks (see `speechbrain.utils.quirks`): [allow_tf32, disable_jit_profiling]
+2026-04-20 13:07:02,472 - speechbrain.utils.quirks - INFO - Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-20 13:07:02,472 - speechbrain.core - INFO - Beginning experiment!
+2026-04-20 13:07:02,472 - speechbrain.core - INFO - Experiment folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025
+2026-04-20 13:07:02,753 - speechbrain.utils.superpowers - DEBUG - annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+asttokens==3.0.1
+certifi==2026.2.25
+cffi==2.0.0
+cfgv==3.5.0
+charset-normalizer==3.4.6
+click==8.3.1
+codespell==2.4.2
+comm==0.2.3
+cuda-bindings==13.0.3
+cuda-pathfinder==1.4.3
+debugpy==1.8.20
+decorator==5.2.1
+distlib==0.4.0
+distro==1.9.0
+executing==2.2.1
+filelock==3.25.2
+fsspec==2026.2.0
+h11==0.16.0
+hf-xet==1.4.2
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==0.36.2
+HyperPyYAML==1.2.3
+identify==2.6.19
+idna==3.11
+iniconfig==2.3.0
+ipykernel==7.2.0
+ipython==9.11.0
+ipython_pygments_lexers==1.1.1
+ipywidgets==8.1.8
+jedi==0.19.2
+Jinja2==3.1.6
+jiter==0.14.0
+joblib==1.5.3
+jupyter_client==8.8.0
+jupyter_core==5.9.1
+jupyterlab_widgets==3.0.16
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+matplotlib-inline==0.2.1
+mdurl==0.1.2
+mpmath==1.3.0
+nest-asyncio==1.6.0
+networkx==3.6.1
+nodeenv==1.10.0
+numpy==1.26.4
+nvidia-cublas==13.1.0.3
+nvidia-cuda-cupti==13.0.85
+nvidia-cuda-nvrtc==13.0.88
+nvidia-cuda-runtime==13.0.96
+nvidia-cudnn-cu13==9.15.1.9
+nvidia-cufft==12.0.0.61
+nvidia-cufile==1.15.1.6
+nvidia-curand==10.4.0.35
+nvidia-cusolver==12.0.4.66
+nvidia-cusparse==12.6.3.3
+nvidia-cusparselt-cu13==0.8.0
+nvidia-nccl-cu13==2.28.9
+nvidia-nvjitlink==13.0.88
+nvidia-nvshmem-cu13==3.4.5
+nvidia-nvtx==13.0.85
+openai==2.32.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1769093650/work
+pandas==3.0.2
+parso==0.8.6
+pathspec==1.0.4
+pexpect==4.9.0
+pillow==12.1.1
+platformdirs==4.9.4
+pluggy==1.6.0
+pre_commit==4.5.1
+prompt_toolkit==3.0.52
+psutil==7.2.2
+ptyprocess==0.7.0
+pure_eval==0.2.3
+pycparser==3.0
+pydantic==2.13.2
+pydantic_core==2.46.2
+Pygments==2.19.2
+pytest==7.4.0
+python-dateutil==2.9.0.post0
+python-discovery==1.2.2
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pyzmq==27.1.0
+regex==2026.4.4
+requests==2.32.5
+rich==14.3.3
+ruamel.yaml==0.18.17
+ruamel.yaml.clib==0.2.15
+ruff==0.12.4
+safetensors==0.7.0
+scipy==1.17.1
+sentencepiece==0.2.1
+setuptools==82.0.1
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+soundfile==0.13.1
+stack-data==0.6.3
+sympy==1.14.0
+tokenizers==0.19.1
+torch==2.10.0+cu130
+torchaudio==2.10.0+cu130
+torchcodec==0.10.0+cu130
+torchdata==0.10.0
+torchtext==0.6.0
+torchvision==0.25.0+cu130
+tornado==6.5.5
+tqdm==4.67.3
+traitlets==5.14.3
+transformers==4.42.2
+triton==3.6.0
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+virtualenv==21.2.4
+wcwidth==0.6.0
+wheel==0.46.3
+widgetsnbextension==4.0.15
+yamllint==1.35.1
+
+
+2026-04-20 13:07:03,286 - speechbrain.core - INFO - Gradscaler enabled: `False`
+2026-04-20 13:07:03,286 - speechbrain.core - INFO - Using training precision: `--precision=fp32`
+2026-04-20 13:07:03,286 - speechbrain.core - INFO - Using evaluation precision: `--eval_precision=fp32`
+2026-04-20 13:07:03,288 - speechbrain.core - INFO - AG_ASR Model Statistics:
+* Total Number of Trainable Parameters: 158.4M
+* Total Number of Parameters: 246.5M
+* Trainable Parameters represent 64.2509% of the total size.
+2026-04-20 13:07:03,291 - speechbrain.utils.checkpoints - INFO - Loading a checkpoint from /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+13-06-09+00
+2026-04-20 13:07:05,111 - speechbrain.utils.epoch_loop - INFO - Going into epoch 18
+2026-04-20 13:07:05,112 - __main__ - INFO - [AG] Stage 2: Decoder adapters UNFROZEN, AG Loss active
+2026-04-20 13:07:06,189 - __main__ - INFO - [AG Baseline] Trainable: 158,367,744 / 246,483,456 (64.25%)
+2026-04-20 13:07:06,307 - __main__ - INFO - [AG Stage 2] ag_loss=0.022139, gamma=0.01
+2026-04-20 13:07:06,307 - __main__ - INFO - [AG Stage 2 (CE+AG)] seq_loss=1.4138, total=1.4141
+2026-04-20 13:16:40,001 - speechbrain.core - ERROR - Exception:
+Traceback (most recent call last):
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 515, in <module>
+    asr_brain.fit(
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1218, in fit
+    self._fit_valid(valid_set=valid_set, epoch=epoch, enable=enable)
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1120, in _fit_valid
+    loss = self.evaluate_batch(batch, stage=Stage.VALID)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/core.py", line 1006, in evaluate_batch
+    out = self.compute_forward(batch, stage=stage)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/train_ag.py", line 168, in compute_forward
+    predicted_tokens, _, _, _ = search(encoder_out.detach(), wav_lens)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 1681, in forward
+    ) = self.search_step(
+        ^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 1542, in search_step
+    (log_probs, memory, attn) = self._attn_weight_step(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 917, in _attn_weight_step
+    log_probs, memory, attn = self.forward_step(
+                              ^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/decoders/seq2seq.py", line 2159, in forward_step
+    logits, attn, kv = self.model.forward_decoder(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/ag_whisper.py", line 272, in forward_decoder
+    return self.whisper.forward_decoder(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/speechbrain/integrations/huggingface/whisper.py", line 403, in forward_decoder
+    output_states = self.model.decoder(
+                    ^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/transformers/models/whisper/modeling_whisper.py", line 1445, in forward
+    layer_outputs = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1882, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1843, in inner
+    hook_result = hook(self, args, result)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/ag_whisper.py", line 164, in hook
+    h = h + adapter(h)
+            ^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DSP-CS-ASR/recipes/Baselines/AG/ag_whisper.py", line 48, in forward
+    h = self.down_proj(h)
+        ^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+2026-04-20 13:19:29,334 - speechbrain.utils.quirks - INFO - Applied quirks (see `speechbrain.utils.quirks`): [disable_jit_profiling, allow_tf32]
+2026-04-20 13:19:29,334 - speechbrain.utils.quirks - INFO - Excluded quirks specified by the `SB_DISABLE_QUIRKS` environment (comma-separated list): []
+2026-04-20 13:19:29,334 - speechbrain.core - INFO - Beginning experiment!
+2026-04-20 13:19:29,334 - speechbrain.core - INFO - Experiment folder: /workspace/DSP-CS-ASR/results/Baseline_AG/2025
+2026-04-20 13:19:29,613 - speechbrain.utils.superpowers - DEBUG - annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+asttokens==3.0.1
+certifi==2026.2.25
+cffi==2.0.0
+cfgv==3.5.0
+charset-normalizer==3.4.6
+click==8.3.1
+codespell==2.4.2
+comm==0.2.3
+cuda-bindings==13.0.3
+cuda-pathfinder==1.4.3
+debugpy==1.8.20
+decorator==5.2.1
+distlib==0.4.0
+distro==1.9.0
+executing==2.2.1
+filelock==3.25.2
+fsspec==2026.2.0
+h11==0.16.0
+hf-xet==1.4.2
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==0.36.2
+HyperPyYAML==1.2.3
+identify==2.6.19
+idna==3.11
+iniconfig==2.3.0
+ipykernel==7.2.0
+ipython==9.11.0
+ipython_pygments_lexers==1.1.1
+ipywidgets==8.1.8
+jedi==0.19.2
+Jinja2==3.1.6
+jiter==0.14.0
+joblib==1.5.3
+jupyter_client==8.8.0
+jupyter_core==5.9.1
+jupyterlab_widgets==3.0.16
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+matplotlib-inline==0.2.1
+mdurl==0.1.2
+mpmath==1.3.0
+nest-asyncio==1.6.0
+networkx==3.6.1
+nodeenv==1.10.0
+numpy==1.26.4
+nvidia-cublas==13.1.0.3
+nvidia-cuda-cupti==13.0.85
+nvidia-cuda-nvrtc==13.0.88
+nvidia-cuda-runtime==13.0.96
+nvidia-cudnn-cu13==9.15.1.9
+nvidia-cufft==12.0.0.61
+nvidia-cufile==1.15.1.6
+nvidia-curand==10.4.0.35
+nvidia-cusolver==12.0.4.66
+nvidia-cusparse==12.6.3.3
+nvidia-cusparselt-cu13==0.8.0
+nvidia-nccl-cu13==2.28.9
+nvidia-nvjitlink==13.0.88
+nvidia-nvshmem-cu13==3.4.5
+nvidia-nvtx==13.0.85
+openai==2.32.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1769093650/work
+pandas==3.0.2
+parso==0.8.6
+pathspec==1.0.4
+pexpect==4.9.0
+pillow==12.1.1
+platformdirs==4.9.4
+pluggy==1.6.0
+pre_commit==4.5.1
+prompt_toolkit==3.0.52
+psutil==7.2.2
+ptyprocess==0.7.0
+pure_eval==0.2.3
+pycparser==3.0
+pydantic==2.13.2
+pydantic_core==2.46.2
+Pygments==2.19.2
+pytest==7.4.0
+python-dateutil==2.9.0.post0
+python-discovery==1.2.2
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pyzmq==27.1.0
+regex==2026.4.4
+requests==2.32.5
+rich==14.3.3
+ruamel.yaml==0.18.17
+ruamel.yaml.clib==0.2.15
+ruff==0.12.4
+safetensors==0.7.0
+scipy==1.17.1
+sentencepiece==0.2.1
+setuptools==82.0.1
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+soundfile==0.13.1
+stack-data==0.6.3
+sympy==1.14.0
+tokenizers==0.19.1
+torch==2.10.0+cu130
+torchaudio==2.10.0+cu130
+torchcodec==0.10.0+cu130
+torchdata==0.10.0
+torchtext==0.6.0
+torchvision==0.25.0+cu130
+tornado==6.5.5
+tqdm==4.67.3
+traitlets==5.14.3
+transformers==4.42.2
+triton==3.6.0
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+virtualenv==21.2.4
+wcwidth==0.6.0
+wheel==0.46.3
+widgetsnbextension==4.0.15
+yamllint==1.35.1
+
+
+2026-04-20 13:19:30,131 - speechbrain.core - INFO - Gradscaler enabled: `False`
+2026-04-20 13:19:30,131 - speechbrain.core - INFO - Using training precision: `--precision=fp32`
+2026-04-20 13:19:30,131 - speechbrain.core - INFO - Using evaluation precision: `--eval_precision=fp32`
+2026-04-20 13:19:30,133 - speechbrain.core - INFO - AG_ASR Model Statistics:
+* Total Number of Trainable Parameters: 158.4M
+* Total Number of Parameters: 246.5M
+* Trainable Parameters represent 64.2509% of the total size.
+2026-04-20 13:19:30,135 - speechbrain.utils.checkpoints - INFO - Loading a checkpoint from /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+13-06-09+00
+2026-04-20 13:19:31,986 - speechbrain.utils.checkpoints - INFO - Loading a checkpoint from /workspace/DSP-CS-ASR/results/Baseline_AG/2025/save/CKPT+2026-04-20+13-06-09+00
+2026-04-20 13:19:35,110 - __main__ - INFO - [AG Baseline] Trainable: 158,367,744 / 246,483,456 (64.25%)
+2026-04-20 13:19:38,776 - __main__ - INFO - [AG Stage 2 (CE+AG)] seq_loss=1.8588, total=1.8588
+2026-04-20 13:32:57,754 - speechbrain.utils.train_logger - INFO - Epoch loaded: 17 - test loss: 2.28, test WER: 23.56, test CER: 17.32, test CS-WER: 33.01, test N-WER: 23.93, test training_stage: 2

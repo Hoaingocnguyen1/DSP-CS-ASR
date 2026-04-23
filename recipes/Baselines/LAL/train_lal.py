@@ -1,13 +1,54 @@
 #!/usr/bin/env python3
 """
-DSP-CS Whisper Training Recipe
-================================
-Trains the DSP_Whisper model (Whisper Small + DSP-CS) for Vietnamese-English
-code-switching ASR using SpeechBrain's Brain class.
+LAL Baseline Training Recipe (Liu et al., 2024)
+=================================================
+Paper : "Aligning Speech to Languages to Enhance Code-switching
+         Speech Recognition"
+Authors: Hexin Liu, Leibny Paola Garcia, Xiangyu Zhang, Andy W.H. Khong,
+         Eng Siong Chng
+Ref   : arXiv:2403.05887v3
 
-Loss: (1 - lid_w) * seq2seq_CE + lid_w * LID_focal
-Decoder: Whisper autoregressive decoder
-Evaluation: WER via Whisper beam search
+Architecture:
+  Audio → [Whisper Encoder + LoRA] → encoder_out [B, 1500, 768]
+               ↓
+         nn.Linear(768, 3) → lid_logits (frame-level LID prediction)
+               ↓
+         Cross-Attention Alignment → pseudo language labels per frame
+               ↓
+         L_LAL = CrossEntropy(lid_logits, pseudo_labels)
+               ↓
+         [Whisper Decoder (frozen attn, fine-tune)] → logits
+               ↓
+         Total Loss: L = (1 - β) · L_seq + β · L_LAL     (β = 0.05 fixed)
+
+Key differences from DSP-CS-ASR V5 (eLAL):
+  ┌────────────────────┬──────────────────┬──────────────────────┐
+  │ Component          │ LAL (this file)  │ DSP V5 (eLAL)        │
+  ├────────────────────┼──────────────────┼──────────────────────┤
+  │ LID module         │ nn.Linear        │ CausalPromptGen(GRU) │
+  │ LID loss           │ CrossEntropy     │ Focal Loss + Smooth  │
+  │ Confidence mask    │ ✗ No             │ ✓ threshold > 0.05   │
+  │ Language adapters  │ ✗ No             │ ✓ Soft-Routed LAA    │
+  │ β scheduling       │ Fixed β=0.05     │ Linear decay 0.05→01 │
+  └────────────────────┴──────────────────┴──────────────────────┘
+
+Usage (on server):
+  # 1. cd vào thư mục LAL
+  cd /workspace/DSP-CS-ASR/recipes/Baselines/LAL
+
+  # 2. Chạy train
+  PYTHONPATH=/workspace/DSP-CS-ASR python3 train_lal.py train_lal.yaml \\
+      --data_folder /workspace/DSP-CS-ASR/data/vimedcss \\
+      --output_folder /workspace/DSP-CS-ASR/results/Baseline_LAL/2025 \\
+      --save_folder /workspace/DSP-CS-ASR/results/Baseline_LAL/2025/save \\
+      --train_log /workspace/DSP-CS-ASR/results/Baseline_LAL/2025/train_log.txt
+
+  # 3. Chạy trong tmux (nền)
+  tmux new -s lal
+  # paste lệnh trên, rồi Ctrl+B D để detach
+
+  # 4. Xem log
+  tail -f /workspace/DSP-CS-ASR/results/Baseline_LAL/2025/train_log.txt
 """
 
 import sys
@@ -21,7 +62,8 @@ from speechbrain.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-class DSP_Whisper_ASR(sb.Brain):
+class LAL_ASR(sb.Brain):
+    """LAL baseline: Whisper + LoRA + Linear LID + CrossEntropy."""
     lid_label_names = ("SIL", "VI", "EN")
 
     @staticmethod
@@ -40,7 +82,6 @@ class DSP_Whisper_ASR(sb.Brain):
             .expand(lid_targets.shape[0], -1)
         ) < target_lengths.unsqueeze(1)
         lid_targets = lid_targets.masked_fill(~target_mask, 0)
-
         return lid_targets
 
     @staticmethod
@@ -51,68 +92,16 @@ class DSP_Whisper_ASR(sb.Brain):
             .expand(lengths.shape[0], -1)
         ) < lengths.unsqueeze(1)
 
-    def _get_current_lid_weight(self, epoch):
-        """Epoch-wise linear schedule for the auxiliary LID loss."""
-        start_w = getattr(self.hparams, "lid_loss_weight_start", None)
-        end_w = getattr(self.hparams, "lid_loss_weight_end", None)
-        if start_w is None or end_w is None:
-            return self.hparams.lid_loss_weight
-
-        start_epoch = getattr(self.hparams, "lid_loss_weight_decay_start_epoch", 1)
-        end_epoch = getattr(
-            self.hparams,
-            "lid_loss_weight_decay_end_epoch",
-            self.hparams.number_of_epochs,
-        )
-
-        if epoch is None:
-            return end_w
-        
-        if epoch <= start_epoch:
-            return start_w
-        if epoch >= end_epoch:
-            return end_w
-
-        progress = (epoch - start_epoch) / max(end_epoch - start_epoch, 1)
-        return start_w + progress * (end_w - start_w)
-
-    def _write_lid_confusion(self, stage, epoch):
-        """Persist confusion matrix for later LID/code-switch analysis."""
-        out_dir = Path(self.hparams.output_folder)
-        out_dir.mkdir(parents=True, exist_ok=True)
-        path = out_dir / f"lid_confusion_{stage.name.lower()}_epoch{epoch}.txt"
-
-        confusion = self.lid_confusion.cpu()
-        labels = self.lid_label_names[: self.lid_num_classes]
-        lines = [
-            f"Stage: {stage.name}",
-            f"Epoch: {epoch}",
-            f"LID-ACC: {100.0 * self.lid_correct / max(self.lid_total, 1):.4f}",
-            f"LID-mF1: {self._summarize_lid_metrics()['LID-mF1']:.4f}",
-            "",
-            "Labels: " + " ".join(labels),
-            "Confusion Matrix (rows=target, cols=pred)",
-            "\t" + "\t".join(labels),
-        ]
-
-        for i, label in enumerate(labels):
-            row = "\t".join(str(int(x)) for x in confusion[i].tolist())
-            lines.append(f"{label}\t{row}")
-
-        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
     def init_optimizers(self):
-        """Separate LRs for DSP backbone vs decoder."""
-        # Group 1: LoRA + CausalPromptGenerator + Gate (backbone side)
+        """Separate LRs for backbone vs decoder."""
         backbone_params = []
-        # Group 2: Whisper decoder params
         decoder_params = []
 
         dsp = self.modules.dsp_model
         for name, param in dsp.named_parameters():
             if not param.requires_grad:
                 continue
-            if "decoder" in name and "prompt" not in name and "gate" not in name:
+            if "decoder" in name and "lid" not in name:
                 decoder_params.append(param)
             else:
                 backbone_params.append(param)
@@ -128,7 +117,7 @@ class DSP_Whisper_ASR(sb.Brain):
             self.checkpointer.add_recoverable("optimizer", self.optimizer)
 
     def optimizers_step(self):
-        """Clip and step all optimizer param groups, not only the first one."""
+        """Clip and step all optimizer param groups."""
         if self.optimizers_dict is not None:
             valid_optimizers = self.freeze_optimizers(self.optimizers_dict)
         elif self.opt_class is not None:
@@ -163,42 +152,27 @@ class DSP_Whisper_ASR(sb.Brain):
         wavs, wav_lens = batch.sig
 
         if stage == sb.Stage.TEST:
-            # Accumulate audio duration for RTF (Real-Time Factor) calculation
             self.total_audio_duration += (wavs.shape[1] * wav_lens).sum().item() / 16000.0
 
-        # Get decoder input tokens (shift right for teacher forcing)
         tokens, token_lens = batch.tokens
-
-        # Build decoder input: [bos, lang, task, notimestamps, ...tokens...]
         dsp = self.modules.dsp_model
-        whisper = dsp.whisper
-
         bos_tokens = self._get_decoder_input_tokens(tokens, token_lens)
 
-        # Forward pass
-        logits, lid_logits, cross_attn, ctc_logits, adapters = dsp(wavs, bos_tokens)
-        
-        # Apply smoothing for LID targets if configured (eLAL)
-        lid_logprobs = F.log_softmax(lid_logits, dim=-1)
+        logits, lid_logits, cross_attn = dsp(wavs, bos_tokens)
 
         predictions = {
             "logits": logits,
-            "lid_logprobs": lid_logprobs,
+            "lid_logits": lid_logits,
             "cross_attn": cross_attn,
-            "ctc_logits": ctc_logits,
-            "adapters": adapters,
         }
 
-        # Log training mode once
         if not hasattr(self, "_logged_mode"):
-            mode = "WARMUP (LID only)" if self.hparams.warmup_only else "JOINT (Seq2Seq + LID)"
-            logger.info(f"Training mode: {mode}")
             n_train = sum(p.numel() for p in dsp.parameters() if p.requires_grad)
             n_total = sum(p.numel() for p in dsp.parameters())
-            logger.info(f"Trainable: {n_train:,} / {n_total:,} ({100*n_train/n_total:.2f}%)")
+            logger.info(f"[LAL Baseline] Trainable: {n_train:,} / {n_total:,} ({100*n_train/n_total:.2f}%)")
             self._logged_mode = True
 
-        if not self.hparams.warmup_only and stage != sb.Stage.TRAIN:
+        if stage != sb.Stage.TRAIN:
             encoder_out, _ = dsp.get_encoder_out(wavs)
             search = (
                 self.hparams.valid_search
@@ -211,25 +185,12 @@ class DSP_Whisper_ASR(sb.Brain):
         return predictions
 
     def _get_decoder_input_tokens(self, target_tokens, target_lens):
-        """Build Whisper decoder input: prefix tokens + target tokens."""
         dsp = self.modules.dsp_model
         whisper = dsp.whisper
         B = target_tokens.shape[0]
         device = target_tokens.device
 
-        # [EXP-A] Bilingual prompt: [sot, vi, EN, transcribe, notimestamps]
-        if getattr(dsp, 'bilingual_prompt', False) and dsp._en_token is not None:
-            orig_prefix = whisper.tokenizer.prefix_tokens
-            prefix = [
-                orig_prefix[0],       # sot
-                orig_prefix[1],       # vi
-                dsp._en_token,        # en  ← THÊM
-                orig_prefix[2],       # transcribe
-                orig_prefix[3],       # notimestamps
-            ]
-        else:
-            prefix = whisper.tokenizer.prefix_tokens
-
+        prefix = whisper.tokenizer.prefix_tokens
         prefix_tensor = torch.tensor(prefix, device=device).unsqueeze(0).expand(B, -1)
 
         target_lengths = torch.round(target_lens * target_tokens.shape[1]).long()
@@ -242,12 +203,11 @@ class DSP_Whisper_ASR(sb.Brain):
             ~target_mask, whisper.tokenizer.pad_token_id
         )
 
-        # Concat prefix + target tokens (teacher forcing input)
         decoder_input = torch.cat([prefix_tensor, padded_targets], dim=1)
         return decoder_input
 
     def _expand_word_lid_to_token_lid(self, batch, prefix_len, device):
-        """Map word-level LID to BPE-token-level LID explicitly."""
+        """Map word-level LID to BPE-token-level LID (same as V5)."""
         whisper = self.modules.dsp_model.whisper
         B = len(batch.words)
         
@@ -280,144 +240,65 @@ class DSP_Whisper_ASR(sb.Brain):
                     
         return token_lids
 
-    def _compute_switch_point_weights(self, batch, max_len, boost=2.0, radius=1, device=None):
-        """[EXP-D] SPAL: Compute per-token loss weights.
-        
-        Tokens at code-switching boundaries get `boost` weight,
-        others get weight 1.0.
-        
-        Arguments
-        ---------
-        batch : PaddedBatch
-        max_len : int — max length of tokens_eos
-        boost : float — weight multiplier at switch points (default 2.0)
-        radius : int — number of tokens around switch point to boost
-        device : torch.device
-        
-        Returns
-        -------
-        weights : [B, max_len]
-        """
-        whisper = self.modules.dsp_model.whisper
-        B = len(batch.words)
-        weights = torch.ones(B, max_len, device=device)
-        
-        lid_padded = batch.lid_ids[0] if isinstance(batch.lid_ids, tuple) else batch.lid_ids
-        
-        for b in range(B):
-            words = batch.words[b].split()
-            lids = lid_padded[b]
-            
-            curr_idx = 0  # position in tokens_eos (no prefix)
-            for w_i, (word, w_lid) in enumerate(zip(words, lids)):
-                word_input = (" " + word) if curr_idx > 0 else word
-                toks = whisper.tokenizer.encode(word_input, add_special_tokens=False)
-                t_len = len(toks)
-                
-                # Check if this is a switch point (language changed)
-                if (w_i > 0
-                    and w_lid != lids[w_i - 1]
-                    and w_lid != 0
-                    and lids[w_i - 1] != 0):
-                    start = max(0, curr_idx - radius)
-                    end = min(max_len, curr_idx + t_len + radius)
-                    weights[b, start:end] = boost
-                
-                curr_idx += t_len
-                if curr_idx >= max_len:
-                    break
-        
-        return weights
-
     def compute_objectives(self, predictions, batch, stage):
-        # --- 1. eLAL: Enhanced Language Alignment Loss ---
-        lid_logprobs = predictions["lid_logprobs"]  # [B, T_enc, C]
-        cross_attn = predictions.get("cross_attn", None) # [B, heads, tgt_len, src_len]
-        
-        B, T_enc, C = lid_logprobs.shape
+        # --- 1. LAL: Language Alignment Loss (Paper 4 exact) ---
+        lid_logits = predictions["lid_logits"]  # [B, T_enc, C]
+        cross_attn = predictions.get("cross_attn", None)
+
+        B, T_enc, C = lid_logits.shape
         lid_targets = self._compute_lid_targets(batch, C)
-        
+
         frame_lengths = torch.round(batch.sig[1] * T_enc).long()
-        frame_mask = self._compute_frame_mask(frame_lengths, T_enc, lid_logprobs.device)
-
-        lid_alpha = getattr(self.hparams, "lid_alpha", [0.1, 0.3, 0.9])
-        lid_gamma = getattr(self.hparams, "lid_gamma", 3.0)
-
-        # [EXP-B] Dynamic LID weights: inverse frequency per batch
-        use_dynamic = getattr(self.hparams, 'dynamic_lid_weights', False)
+        frame_mask = self._compute_frame_mask(frame_lengths, T_enc, lid_logits.device)
 
         if cross_attn is not None and stage == sb.Stage.TRAIN:
             whisper = self.modules.dsp_model.whisper
             prefix_len = len(whisper.tokenizer.prefix_tokens)
-            
-            # A. Word to BPE Mapping
-            token_lid = self._expand_word_lid_to_token_lid(batch, prefix_len, lid_logprobs.device)
-            
-            # B. Frame-to-Token Alignment via Cross-Attention (V5 Core)
+
+            # A. Word to BPE mapping (same as V5)
+            token_lid = self._expand_word_lid_to_token_lid(batch, prefix_len, lid_logits.device)
+
+            # B. Frame-to-Token Alignment via Cross-Attention
             attn_avg = cross_attn.mean(dim=1)  # [B, tgt_len, src_len]
-            max_attn_vals, frame_to_token = attn_avg.max(dim=1)  # [B, src_len]
-            
-            # C. Confidence Masking (Threshold > 0.05)
-            conf_mask = max_attn_vals > 0.05
-            
-            # D. Pseudo Labels Extract
+            _, frame_to_token = attn_avg.max(dim=1)  # [B, src_len]
+
+            # C. NO confidence masking (Paper 4 exact)
+            # D. Pseudo labels
             pseudo_labels = token_lid.gather(1, frame_to_token.clamp(0, token_lid.size(1) - 1))
-            
-            valid_mask = frame_mask & conf_mask
-            pseudo_flat = pseudo_labels.masked_select(valid_mask).clamp(0, C - 1)
-            logprobs_flat = lid_logprobs[valid_mask]
-            
-            # [EXP-B] Dynamic alpha: compute from batch statistics
-            if use_dynamic and pseudo_flat.numel() > 0:
+
+            pseudo_flat = pseudo_labels.masked_select(frame_mask).clamp(0, C - 1)
+            logits_flat = lid_logits[frame_mask]
+
+            # E. Weighted LAL (Paper 4 exact for class imbalance)
+            # w_c ∝ 1 / Count(lang_c)
+            if pseudo_flat.numel() > 0:
                 counts = torch.bincount(pseudo_flat, minlength=C).float().clamp_min(1.0)
                 inv_freq = counts.sum() / (C * counts)
-                alpha_tensor = (inv_freq / inv_freq.sum()).clamp(min=0.05, max=0.8)
+                weight_tensor = inv_freq / inv_freq.sum()
+                weight_tensor = weight_tensor.clamp(min=0.01) # Tránh weight bằng 0
             else:
-                alpha_tensor = torch.tensor(lid_alpha[:C], device=lid_logprobs.device)
-            
-            # E. Label smoothed Focal Loss
-            target_logprobs = logprobs_flat.gather(1, pseudo_flat.unsqueeze(1)).squeeze(1)
-            per_sample_alpha = alpha_tensor[pseudo_flat]
-            
-            focal_weight = per_sample_alpha * (1.0 - target_logprobs.exp()) ** lid_gamma
-            smoothed_pseudo = torch.full_like(logprobs_flat, 0.1 / (C - 1))
-            smoothed_pseudo.scatter_(1, pseudo_flat.unsqueeze(1), 0.9)
-            
-            lid_loss = -(focal_weight.unsqueeze(1) * smoothed_pseudo * logprobs_flat).sum(dim=1).mean()
-            lid_targets_interp = pseudo_labels # for accuracy metrics reporting
+                weight_tensor = torch.ones(C, device=logits_flat.device) / C
+
+            lid_loss = F.cross_entropy(logits_flat, pseudo_flat, weight=weight_tensor)
+            lid_targets_interp = pseudo_labels
         else:
-            # Valid/Test Fallback to generic interpolation (just to log loss)
+            # Valid/Test fallback
             lid_targets_float = lid_targets.float().unsqueeze(1)
             lid_targets_interp = F.interpolate(
                 lid_targets_float, size=T_enc, mode="nearest"
             ).squeeze(1).long()
-            
-            lid_targets_flat = lid_targets_interp.masked_select(frame_mask).clamp(0, C - 1)
-            logprobs_flat = lid_logprobs[frame_mask]
-            alpha_tensor = torch.tensor(lid_alpha[:C], device=lid_logprobs.device)
-            target_logprobs = logprobs_flat.gather(1, lid_targets_flat.unsqueeze(1)).squeeze(1)
-            
-            per_sample_alpha = alpha_tensor[lid_targets_flat]
-            focal_weight = per_sample_alpha * (1.0 - target_logprobs.exp()) ** lid_gamma
-            lid_loss = -(focal_weight * target_logprobs).mean()
-            
-        lid_loss = torch.nan_to_num(lid_loss, nan=0.0, posinf=0.0, neginf=0.0)
 
-        if self.hparams.warmup_only:
-            return lid_loss
+            lid_targets_flat = lid_targets_interp.masked_select(frame_mask).clamp(0, C - 1)
+            logits_flat = lid_logits[frame_mask]
+            lid_loss = F.cross_entropy(logits_flat, lid_targets_flat)
+
+        lid_loss = torch.nan_to_num(lid_loss, nan=0.0, posinf=0.0, neginf=0.0)
 
         # --- 2. Seq2Seq Cross-Entropy Loss ---
         tokens_eos, tokens_eos_lens = batch.tokens_eos
-        logits = predictions["logits"]  # [B, prefix_len + seq_len, vocab]
+        logits = predictions["logits"]
 
-        # Predict transcript tokens plus EOS.
-        # [EXP-A] prefix_len may differ if bilingual prompt is used
-        dsp = self.modules.dsp_model
-        if getattr(dsp, 'bilingual_prompt', False) and dsp._en_token is not None:
-            orig = dsp.whisper.tokenizer.prefix_tokens
-            prefix_len = len(orig) + 1  # +1 for <|en|>
-        else:
-            prefix_len = len(self.modules.dsp_model.whisper.tokenizer.prefix_tokens)
+        prefix_len = len(self.modules.dsp_model.whisper.tokenizer.prefix_tokens)
         pred_logits = logits[:, prefix_len - 1:, :]
 
         target_lengths = torch.round(
@@ -430,88 +311,23 @@ class DSP_Whisper_ASR(sb.Brain):
         ) < target_lengths.unsqueeze(1)
         seq_targets = tokens_eos.masked_fill(~target_mask, -100)
 
-        # [EXP-D] Switch-Point Aware Loss (SPAL)
-        spal_boost = getattr(self.hparams, 'spal_boost', 1.0)
-        if spal_boost > 1.0 and stage == sb.Stage.TRAIN:
-            # Per-token CE with SPAL weighting
-            vocab_size = pred_logits.shape[-1]
-            per_token_loss = F.cross_entropy(
-                pred_logits.reshape(-1, vocab_size),
-                seq_targets.reshape(-1),
-                ignore_index=-100,
-                label_smoothing=getattr(self.hparams, "label_smoothing", 0.0),
-                reduction='none',
-            ).reshape(tokens_eos.shape[0], -1)
-
-            spal_w = self._compute_switch_point_weights(
-                batch, tokens_eos.shape[1],
-                spal_boost, getattr(self.hparams, 'spal_radius', 1),
-                tokens_eos.device,
-            )
-            spal_w = spal_w[:, :per_token_loss.shape[1]]
-            valid_count = target_mask[:, :per_token_loss.shape[1]].sum().clamp_min(1)
-            seq_loss = (spal_w * per_token_loss).sum() / valid_count
-        else:
-            # Standard CE (V5 default)
-            vocab_size = pred_logits.shape[-1]
-            seq_loss = F.cross_entropy(
-                pred_logits.reshape(-1, vocab_size),
-                seq_targets.reshape(-1),
-                ignore_index=-100,
-                label_smoothing=getattr(self.hparams, "label_smoothing", 0.0),
-            )
+        vocab_size = pred_logits.shape[-1]
+        seq_loss = F.cross_entropy(
+            pred_logits.reshape(-1, vocab_size),
+            seq_targets.reshape(-1),
+            ignore_index=-100,
+            label_smoothing=getattr(self.hparams, "label_smoothing", 0.0),
+        )
         seq_loss = torch.nan_to_num(seq_loss, nan=0.0, posinf=100.0, neginf=0.0)
 
-        # --- 3. [EXP-C] CTC Auxiliary Loss ---
-        ctc_loss = torch.tensor(0.0, device=seq_loss.device)
-        ctc_w = getattr(self.hparams, 'ctc_weight', 0.0)
-        if ctc_w > 0.0 and predictions.get('ctc_logits') is not None:
-            ctc_logits = predictions['ctc_logits']  # [B, T_enc, vocab]
-            tokens, token_lens = batch.tokens
-            ctc_log_probs = F.log_softmax(ctc_logits, dim=-1)
-            input_lengths = torch.round(batch.sig[1] * ctc_logits.shape[1]).long()
-            target_lengths_ctc = torch.round(token_lens * tokens.shape[1]).long()
-            ctc_loss = F.ctc_loss(
-                ctc_log_probs.transpose(0, 1),
-                tokens,
-                input_lengths,
-                target_lengths_ctc,
-                blank=0,
-                zero_infinity=True,
-            )
-            ctc_loss = torch.nan_to_num(ctc_loss, nan=0.0, posinf=0.0, neginf=0.0)
+        # --- Fixed β combination (Paper 4 exact) ---
+        beta = getattr(self.hparams, "lal_beta", 0.05)
+        loss = (1.0 - beta) * seq_loss + beta * lid_loss
 
-        # --- 4. [EXP-F] Contrastive & Orthogonal LAA Loss ---
-        contrast_w = getattr(self.hparams, 'contrast_weight', 0.0)
-        ortho_w = getattr(self.hparams, 'ortho_weight', 0.0)
-        
-        contrast_loss = torch.tensor(0.0, device=seq_loss.device)
-        ortho_loss = torch.tensor(0.0, device=seq_loss.device)
-
-        if (contrast_w > 0.0 or ortho_w > 0.0) and stage == sb.Stage.TRAIN:
-            vi_adapt, en_adapt = predictions['adapters']
-            
-            if contrast_w > 0.0:
-                # Giảm rủi ro chồng lấp Feature bằng Cosine Penalty
-                cos_sim = F.cosine_similarity(vi_adapt, en_adapt, dim=-1) # [B, T]
-                contrast_loss = torch.relu(cos_sim).mean() # Ép Similarity phải âm hoặc 0
-
-            if ortho_w > 0.0:
-                # Ép Trực Giao ma trận trọng số (Orthogonal Regularization)
-                w_vi = self.modules.dsp_model.vi_adapter.down_proj.weight
-                w_en = self.modules.dsp_model.en_adapter.down_proj.weight
-                ortho_loss = torch.norm(w_vi @ w_en.T, p='fro')
-
-        # --- Loss combination ---
-        current_epoch = getattr(self.hparams.epoch_counter, "current", 1)
-        lid_w = self._get_current_lid_weight(current_epoch)
-        loss = ctc_w * ctc_loss + lid_w * lid_loss + (1.0 - ctc_w - lid_w) * seq_loss + contrast_w * contrast_loss + ortho_w * ortho_loss
-
-        # Log once
         if not hasattr(self, "_logged_loss"):
             logger.info(
-                f"Losses: lid={lid_loss.item():.4f}, seq2seq={seq_loss.item():.4f}, "
-                f"lid_w={lid_w:.4f}, total={loss.item():.4f}"
+                f"[LAL] Losses: lid={lid_loss.item():.4f}, seq2seq={seq_loss.item():.4f}, "
+                f"beta={beta}, total={loss.item():.4f}"
             )
             self._logged_loss = True
 
@@ -520,7 +336,6 @@ class DSP_Whisper_ASR(sb.Brain):
             whisper = self.modules.dsp_model.whisper
             predicted_words = []
             for pred in predictions["pred_tokens"]:
-                # Decode, skipping special tokens. Handle both Tensor and list
                 pred_list = pred.tolist() if hasattr(pred, "tolist") else pred
                 text = whisper.tokenizer.decode(pred_list, skip_special_tokens=True)
                 predicted_words.append(text.strip().split())
@@ -528,13 +343,12 @@ class DSP_Whisper_ASR(sb.Brain):
             target_words = [words.split() for words in batch.words]
             self.wer_metric.append(batch.id, predicted_words, target_words)
 
-            # Code-Switch WER
             def filter_cs(words):
                 return [w for w in words if w.isascii() and w.isalpha() and len(w) > 2]
             pred_cs = [filter_cs(pw) for pw in predicted_words]
             tgt_cs = [filter_cs(tw) for tw in target_words]
             self.cs_wer_metric.append(batch.id, pred_cs, tgt_cs)
-            
+
             def filter_native(words):
                 return [w for w in words if not (w.isascii() and w.isalpha() and len(w) > 2)]
             pred_native = [filter_native(pw) for pw in predicted_words]
@@ -543,13 +357,12 @@ class DSP_Whisper_ASR(sb.Brain):
 
             self.cer_metric.append(batch.id, predicted_words, target_words)
 
-            lid_pred = lid_logprobs.argmax(dim=-1)
+            lid_pred = lid_logits.argmax(dim=-1)
             self._update_lid_metrics(lid_pred, lid_targets_interp, batch.sig[1])
 
         return loss
 
     def _update_lid_metrics(self, lid_pred, lid_targets, wav_lens):
-        """Accumulate frame-level LID accuracy and confusion matrix."""
         frame_lengths = torch.round(wav_lens * lid_pred.shape[1]).long()
         frame_mask = (
             torch.arange(lid_pred.shape[1], device=lid_pred.device)
@@ -572,24 +385,19 @@ class DSP_Whisper_ASR(sb.Brain):
     def _summarize_lid_metrics(self):
         if self.lid_total == 0:
             return {"LID-ACC": 0.0, "LID-mF1": 0.0}
-
         confusion = self.lid_confusion.float()
         tp = confusion.diag()
         precision = tp / confusion.sum(dim=0).clamp_min(1.0)
         recall = tp / confusion.sum(dim=1).clamp_min(1.0)
         f1 = 2 * precision * recall / (precision + recall).clamp_min(1e-8)
-
         return {
             "LID-ACC": 100.0 * self.lid_correct / self.lid_total,
             "LID-mF1": 100.0 * f1.mean().item(),
         }
 
     def on_stage_start(self, stage, epoch):
-        if hasattr(self.modules.dsp_model, "warmup"):
-            self.modules.dsp_model.warmup = self.hparams.warmup_only
-
         if stage != sb.Stage.TRAIN:
-            self.lid_num_classes = self.modules.dsp_model.prompt_generator.lid_head.out_features
+            self.lid_num_classes = self.modules.dsp_model.lid_head.out_features
             self.lid_correct = 0
             self.lid_total = 0
             self.lid_confusion = torch.zeros(
@@ -599,7 +407,7 @@ class DSP_Whisper_ASR(sb.Brain):
             self.cs_wer_metric = self.hparams.error_rate_computer()
             self.n_wer_metric = self.hparams.error_rate_computer()
             self.cer_metric = sb.utils.metric_stats.ErrorRateStats(split_tokens=True)
-            
+
         if stage == sb.Stage.TEST:
             import time
             self.test_start_time = time.time()
@@ -617,12 +425,12 @@ class DSP_Whisper_ASR(sb.Brain):
         stage_stats = {"loss": stage_loss}
         if stage == sb.Stage.TRAIN:
             self.train_stats = stage_stats
-        elif not self.hparams.warmup_only:
+        else:
             stage_stats["WER"] = self.wer_metric.summarize("error_rate")
             stage_stats["CER"] = self.cer_metric.summarize("error_rate")
             stage_stats["CS-WER"] = self.cs_wer_metric.summarize("error_rate")
             stage_stats["N-WER"] = self.n_wer_metric.summarize("error_rate")
-            stage_stats["lid_w"] = self._get_current_lid_weight(epoch)
+            stage_stats["lal_beta"] = getattr(self.hparams, "lal_beta", 0.05)
             stage_stats.update(self._summarize_lid_metrics())
 
         if stage == sb.Stage.VALID:
@@ -633,7 +441,6 @@ class DSP_Whisper_ASR(sb.Brain):
                 valid_stats=stage_stats,
             )
 
-            # Early stopping check
             current_wer = stage_stats.get("WER", stage_loss)
             if not hasattr(self, "_best_wer"):
                 self._best_wer = current_wer
@@ -655,34 +462,28 @@ class DSP_Whisper_ASR(sb.Brain):
                 meta={"WER": stage_stats.get("WER", stage_loss)},
                 min_keys=["WER"],
             )
-            if not self.hparams.warmup_only:
-                self._write_lid_confusion(stage, epoch)
 
         elif stage == sb.Stage.TEST:
             self.hparams.train_logger.log_stats(
                 stats_meta={"Epoch loaded": self.hparams.epoch_counter.current},
                 test_stats=stage_stats,
             )
-            if not self.hparams.warmup_only:
-                self._write_lid_confusion(stage, self.hparams.epoch_counter.current)
-                
+
             import time
-            import torch
+            import torch as th
             test_end_time = time.time()
-            total_decode_time = test_end_time - self.test_start_time
+            total_decode_time = test_end_time - self.test_start_time if hasattr(self, 'test_start_time') else 0
             rtf = total_decode_time / self.total_audio_duration if getattr(self, "total_audio_duration", 0) > 0 else 0
-            
-            # Tính VRAM
+
             vram_gb = 0
-            if torch.cuda.is_available():
-                vram_gb = torch.cuda.max_memory_allocated() / (1024**3)
-                
-            # Đếm params
+            if th.cuda.is_available():
+                vram_gb = th.cuda.max_memory_allocated() / (1024**3)
+
             total_params = sum(p.numel() for p in self.modules.parameters()) / 1e6
             trainable_params = sum(p.numel() for p in self.modules.parameters() if p.requires_grad) / 1e6
-            
+
             print("=" * 60)
-            print("ĐÁNH GIÁ CHUYÊN SÂU (COMPREHENSIVE METRICS - DSP LORA)")
+            print("ĐÁNH GIÁ CHUYÊN SÂU (COMPREHENSIVE METRICS - LAL BASELINE)")
             print("=" * 60)
             print("1. TỐC ĐỘ VÀ TÀI NGUYÊN (SPEED & RESOURCES):")
             print(f" - Tổng thời gian giải mã : {total_decode_time:.2f} giây")
@@ -693,7 +494,7 @@ class DSP_Whisper_ASR(sb.Brain):
             percent_train = (trainable_params / total_params * 100) if total_params > 0 else 0
             print(f" - Tham số huấn luyện     : {trainable_params:.1f} M params ({percent_train:.2f}%)")
             print("-" * 60)
-            
+
             wer_summ = self.wer_metric.summarize()
             N = wer_summ['num_scored_tokens']
             if N > 0:
@@ -702,7 +503,7 @@ class DSP_Whisper_ASR(sb.Brain):
                 print(f" - Deletions (D)     : {wer_summ['deletions']/N*100:.2f}% (Bỏ sót từ)")
                 print(f" - Insertions (I)    : {wer_summ['insertions']/N*100:.2f}% (Nhận diện thừa từ)")
             print("=" * 60)
-            
+
             with open(self.hparams.output_folder + "/wer_test_details.txt", "w", encoding="utf-8") as w:
                 self.wer_metric.write_stats(w)
             with open(self.hparams.output_folder + "/cer_test_details.txt", "w", encoding="utf-8") as w:
@@ -711,13 +512,12 @@ class DSP_Whisper_ASR(sb.Brain):
                 self.cs_wer_metric.write_stats(w)
             with open(self.hparams.output_folder + "/nwer_test_details.txt", "w", encoding="utf-8") as w:
                 self.n_wer_metric.write_stats(w)
-                
-            print(f"Đã lưu chi tiết căn chỉnh Alignment vào thư mục: {self.hparams.output_folder}")
+
+            print(f"Đã lưu chi tiết vào thư mục: {self.hparams.output_folder}")
 
 
 def dataio_prepare(hparams):
-    """Prepare data pipelines for Whisper training."""
-
+    """Prepare data pipelines (identical to DSP-CS-ASR V5)."""
     @sb.utils.data_pipeline.takes("wav")
     @sb.utils.data_pipeline.provides("sig")
     def audio_pipeline(wav):
@@ -730,7 +530,6 @@ def dataio_prepare(hparams):
     @sb.utils.data_pipeline.provides("words", "tokens", "tokens_eos")
     def text_pipeline(words):
         yield words
-        # Use Whisper tokenizer
         whisper = hparams["dsp_model"].whisper
         token_ids = whisper.tokenizer.encode(words, add_special_tokens=False)
         yield torch.LongTensor(token_ids)
@@ -775,7 +574,7 @@ if __name__ == "__main__":
 
     datasets = dataio_prepare(hparams)
 
-    asr_brain = DSP_Whisper_ASR(
+    asr_brain = LAL_ASR(
         modules=hparams["modules"],
         hparams=hparams,
         run_opts=run_opts,
